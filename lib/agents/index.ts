@@ -3,6 +3,7 @@ import { getQuotes } from "@/lib/yahoo";
 import { detectRegime } from "@/lib/regime";
 import { aggregateHoldings, readExecutions, totalDeployed, withTrancheStatus } from "@/lib/store";
 import { phaseCap } from "@/lib/phaseCap";
+import { appendSnapshotIfStale } from "@/lib/snapshots";
 import { portfolioStateAgent } from "./portfolioState";
 import { allocationStrategyAgent } from "./allocationStrategy";
 import { signalAnalysisAgent } from "./signalAnalysis";
@@ -35,8 +36,6 @@ export async function runPipeline(): Promise<PipelineResult> {
   const stateAgent = portfolioStateAgent(cfg, quotes);
   const allocAgent = allocationStrategyAgent(stateAgent.output.drift, regime);
   const deployAgent = capitalDeploymentAgent(cfg.tranches, cfg.cash, cfg.cashBuffer, regime);
-  // Tighten the per-pipeline tranche budget to the phase's actual remaining
-  // capacity so recommendations align with the phased cap.
   const effectiveTrancheBudget = Math.min(deployAgent.output.trancheBudget, cap.remainingInPhase || deployAgent.output.trancheBudget);
   const execAgent = executionDecisionAgent(
     allocAgent.output.drift,
@@ -47,7 +46,7 @@ export async function runPipeline(): Promise<PipelineResult> {
 
   const totalRecommendedUsd = execAgent.output.reduce((s, r) => s + r.dollars, 0);
 
-  return {
+  const result: PipelineResult = {
     asOf: new Date().toISOString(),
     capital: cfg.capital,
     cashBuffer: cfg.cashBuffer,
@@ -66,4 +65,10 @@ export async function runPipeline(): Promise<PipelineResult> {
     currentPhaseRemainingUsd: cap.remainingInPhase,
     agents: [stateAgent, allocAgent, signalsAgent, deployAgent, execAgent],
   };
+
+  // Persist a snapshot in the background (throttled to 5-min cadence). Don't
+  // block the page render on this.
+  appendSnapshotIfStale(result).catch(() => {});
+
+  return result;
 }

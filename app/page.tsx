@@ -12,6 +12,7 @@ import { DeploymentPlan } from "@/components/DeploymentPlan";
 import { AgentCards } from "@/components/AgentCards";
 import { ExecutionLog } from "@/components/ExecutionLog";
 import { FidelityPanel } from "@/components/FidelityPanel";
+import { ChangeBanner } from "@/components/ChangeBanner";
 import { OverlapAnalysis } from "@/components/OverlapAnalysis";
 import { EquityCurve } from "@/components/EquityCurve";
 import { PortfolioInsights } from "@/components/PortfolioInsights";
@@ -52,6 +53,7 @@ export default async function Page() {
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
       <TickerMarquee recs={data.recommendations} asOf={data.asOf} />
+      <ChangeBanner refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <HeroSummary data={data} />
       <RegimeBanner regime={data.regime} />
       <PortfolioInsights data={data} />
