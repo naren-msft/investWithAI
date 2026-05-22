@@ -59,8 +59,8 @@ function TickerItem({ r }: { r: BuyRecommendation }) {
   const ArrowI = up ? ArrowUpRight : down ? ArrowDownRight : Minus;
   const dayCls = up ? "text-emerald-700 dark:text-emerald-300" : down ? "text-red-700 dark:text-red-300" : "subtle";
   const signalCls =
-    r.signal === "BUY"   ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
-    r.signal === "AVOID" ? "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30" :
+    r.signal === "BUY"   ? "bg-emerald-600 text-white border-emerald-700 dark:bg-emerald-500 dark:border-emerald-400 dark:text-black" :
+    r.signal === "AVOID" ? "bg-red-600 text-white border-red-700 dark:bg-red-500 dark:border-red-400 dark:text-white" :
                            "bg-surface-3 text-ink border-line";
   return (
     <span className="inline-flex items-center gap-2 shrink-0">

@@ -142,7 +142,7 @@ export function ChangeBanner({ refreshTick }: { refreshTick?: number }) {
             <div className="text-xs subtle uppercase tracking-wider">New buy recommendations</div>
             <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
               {diff.newRecommendations.map((r) => (
-                <span key={r.ticker} className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5">
+                <span key={r.ticker} className="rounded-md border border-emerald-700 bg-emerald-600 text-white dark:bg-emerald-500 dark:border-emerald-400 dark:text-black px-2 py-0.5 font-medium">
                   <span className="font-semibold">{r.ticker}</span>{" "}
                   <span className="font-mono">${Math.round(r.dollars).toLocaleString()}</span>
                 </span>
@@ -170,8 +170,8 @@ export function ChangeBanner({ refreshTick }: { refreshTick?: number }) {
 
 function SigChip({ label }: { label: string }) {
   const cls =
-    label === "BUY"   ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
-    label === "AVOID" ? "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30" :
+    label === "BUY"   ? "bg-emerald-600 text-white border-emerald-700 dark:bg-emerald-500 dark:border-emerald-400 dark:text-black" :
+    label === "AVOID" ? "bg-red-600 text-white border-red-700 dark:bg-red-500 dark:border-red-400 dark:text-white" :
                         "bg-surface-3 border-line";
   return <span className={`px-1.5 py-0 rounded text-[10px] font-mono border ${cls}`}>{label}</span>;
 }
