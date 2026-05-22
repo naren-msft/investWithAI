@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Light theme (default) */
+:root {
+  --bg:         247 249 252;  /* page bg */
+  --surface-1: 255 255 255;   /* card */
+  --surface-2: 244 247 252;   /* inset panels */
+  --surface-3: 238 242 248;   /* most subtle (chips, stat backdrops) */
+  --ink:         17  24  39;
+  --ink-muted:   90 104 130;
+  --line:       210 219 232;
+  --shadow:        0   0   0;
+  --shadow-inset: 17  24  39;
+  color-scheme: light;
+}
+
+/* Dark theme */
+.dark {
+  --bg:         11 15 23;
+  --surface-1: 21 27 39;
+  --surface-2: 13 18 28;
+  --surface-3: 28 36 51;
+  --ink:        230 237 247;
+  --ink-muted:  154 167 189;
+  --line:        46 56  76;
+  --shadow:        0   0   0;
+  --shadow-inset: 255 255 255;
+  color-scheme: dark;
+}
+
+html, body {
+  background: rgb(var(--bg));
+  color: rgb(var(--ink));
+}
+
+.card {
+  @apply rounded-2xl bg-surface-1 shadow-card border border-line p-5;
+}
+.subtle { color: rgb(var(--ink-muted)); }
+.kbd {
+  @apply px-1.5 py-0.5 text-[11px] rounded bg-surface-3 border border-line font-mono;
+  color: rgb(var(--ink-muted));
+}
+
+/* Recharts: themed tooltip + axis text */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgb(var(--surface-1)) !important;
+  border: 1px solid rgb(var(--line)) !important;
+  border-radius: 10px !important;
+  color: rgb(var(--ink)) !important;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.recharts-default-tooltip .recharts-tooltip-label,
+.recharts-default-tooltip .recharts-tooltip-item,
+.recharts-default-tooltip .recharts-tooltip-item-list,
+.recharts-default-tooltip .recharts-tooltip-item-name,
+.recharts-default-tooltip .recharts-tooltip-item-separator,
+.recharts-default-tooltip .recharts-tooltip-item-value,
+.recharts-default-tooltip .recharts-tooltip-item-unit {
+  color: rgb(var(--ink)) !important;
+}
+.recharts-cartesian-axis-tick-value { fill: rgb(var(--ink-muted)) !important; }
