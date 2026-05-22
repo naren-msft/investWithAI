@@ -119,7 +119,7 @@ export function ExecutionLog(props: ExecutionLogProps) {
 
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="execution-log"
         title="Log your executions"
         subtitle="Record what you actually bought. Holdings, drift, deployment plan, and tranche budget update instantly. Hard cap enforces the current phase's size — uncheck to override."
         right={

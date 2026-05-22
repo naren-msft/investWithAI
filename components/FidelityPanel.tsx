@@ -25,7 +25,7 @@ export function FidelityPanel({ recs }: { recs: BuyRecommendation[] }) {
 
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="fidelity-panel"
         title="Fidelity execution"
         subtitle="Copy these tickets, then open Fidelity per ticker to confirm and place orders."
         right={

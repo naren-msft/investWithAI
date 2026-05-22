@@ -43,7 +43,7 @@ export function OverlapAnalysis({ refreshTick }: { refreshTick?: number }) {
   if (loading) {
     return (
       <Card>
-        <CardHeader title="Hidden concentration & sector X-ray" subtitle="Computing true single-stock and sector exposures across all ETFs…" />
+        <CardHeader helpSection="overlap" title="Hidden concentration & sector X-ray" subtitle="Computing true single-stock and sector exposures across all ETFs…" />
         <div className="h-[100px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Fetching holdings…</span>
         </div>
@@ -54,7 +54,7 @@ export function OverlapAnalysis({ refreshTick }: { refreshTick?: number }) {
   if (err || !data) {
     return (
       <Card>
-        <CardHeader title="Hidden concentration & sector X-ray" />
+        <CardHeader helpSection="overlap" title="Hidden concentration & sector X-ray" />
         <div className="text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" /> {err ?? "no data"}
         </div>
@@ -67,7 +67,7 @@ export function OverlapAnalysis({ refreshTick }: { refreshTick?: number }) {
 
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="overlap"
         title="Hidden concentration & sector X-ray"
         subtitle="Decomposes all ETFs into their underlying stocks and sectors. Same stock held in 3 ETFs adds up — that hidden concentration is invisible in the allocation table."
         right={

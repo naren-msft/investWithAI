@@ -16,7 +16,7 @@ export function AllocationTable({
   const recByTicker = new Map(recommendations.map((r) => [r.ticker, r]));
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="allocation-table"
         title="Allocation table"
         subtitle="Today = live intraday % change.  Drift = target $ − current $.  Buy this tranche = dollars to deploy now.  Δ after buys = drift remaining.  ⚠️ = drift > 3% (rebalance candidate).  Click ticker for full research page."
       />

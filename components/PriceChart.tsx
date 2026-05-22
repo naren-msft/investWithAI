@@ -44,7 +44,7 @@ export function PriceChart({ tickers }: { tickers: string[] }) {
 
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="price-chart"
         title="Price · RSI · MACD"
         subtitle="6-month daily close + RSI-14 + MACD(12,26,9). Switch tickers to inspect signals."
         right={

@@ -43,7 +43,7 @@ export function DividendTracker({ refreshTick }: { refreshTick?: number }) {
   if (loading) {
     return (
       <Card>
-        <CardHeader title="Dividend tracker" subtitle="Projected annual income from your held shares + upcoming ex-dividend dates." />
+        <CardHeader helpSection="dividend-tracker" title="Dividend tracker" subtitle="Projected annual income from your held shares + upcoming ex-dividend dates." />
         <div className="h-[80px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Fetching dividend data…</span>
         </div>
@@ -57,7 +57,7 @@ export function DividendTracker({ refreshTick }: { refreshTick?: number }) {
 
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="dividend-tracker"
         title="Dividend tracker"
         subtitle="Annual income at current shares + blended yield + upcoming ex-dividend dates."
         right={

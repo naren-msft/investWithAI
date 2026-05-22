@@ -70,7 +70,7 @@ export function EquityCurve({ refreshTick }: { refreshTick?: number }) {
 
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="equity-curve"
         title="Portfolio growth vs SPY"
         subtitle="Green = your portfolio. Orange dashed = if you'd bought SPY with the same $ on the same dates. Blue dashed = cost basis."
         right={

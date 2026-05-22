@@ -11,7 +11,7 @@ const variantFor = (k: Regime["kind"]) =>
 export function RegimeBanner({ regime }: { regime: Regime }) {
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="regime-banner"
         title="Market regime"
         subtitle="Drives the multiplier applied to underweight positions when sizing buys."
         right={<Badge variant={variantFor(regime.kind)}>{regime.kind.toUpperCase()} · ×{regime.multiplier}</Badge>}

@@ -12,7 +12,7 @@ export function DeploymentPlan({
 }) {
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="deployment-plan"
         title="Staged capital deployment"
         subtitle="Phased tranches gated by time and SPY drawdown. Tranche size scales with regime."
         right={<Badge variant="info">Next budget {fmtUsd(currentBudget)}</Badge>}

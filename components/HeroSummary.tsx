@@ -1,8 +1,10 @@
+import Link from "next/link";
 import type { PipelineResult } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { HelpCircle } from "lucide-react";
 import { fmtUsd } from "@/lib/format";
 
 export function HeroSummary({ data }: { data: PipelineResult }) {
@@ -28,6 +30,13 @@ export function HeroSummary({ data }: { data: PipelineResult }) {
             Day P/L {fmtUsd(data.dayPnlUsd, true)}
           </Badge>
           <AutoRefresh />
+          <Link
+            href="/help"
+            title="How the dashboard works"
+            className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-2 hover:bg-surface-3 text-xs px-2.5 py-1.5 transition-colors"
+          >
+            <HelpCircle className="w-3.5 h-3.5" /> Help
+          </Link>
           <ThemeToggle />
         </div>
       </div>

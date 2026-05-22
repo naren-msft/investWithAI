@@ -20,7 +20,7 @@ export function BuyRecommendations({
   const leftover = Math.max(0, trancheBudget - totalUsd);
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="recommendations"
         title="Top buy recommendations"
         subtitle="Sized from the current tranche × effective weights · capped at each ETF's remaining drift."
         right={<Badge variant="info">{recs.length} candidates</Badge>}

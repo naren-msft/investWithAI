@@ -10,7 +10,7 @@ export function AllocationDonut({ rows }: { rows: DriftRow[] }) {
   const data = rows.map((r) => ({ name: r.ticker, value: r.targetPct, usd: r.targetUsd }));
   return (
     <Card>
-      <CardHeader title="Target allocation" subtitle="Regime-adjusted target weights." />
+      <CardHeader helpSection="donut" title="Target allocation" subtitle="Regime-adjusted target weights." />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div className="h-[320px]">
           <ResponsiveContainer width="100%" height="100%">

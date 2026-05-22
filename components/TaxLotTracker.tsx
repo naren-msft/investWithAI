@@ -53,7 +53,7 @@ export function TaxLotTracker({ refreshTick }: { refreshTick?: number }) {
   if (loading) {
     return (
       <Card>
-        <CardHeader title="Tax lots" subtitle="Each execution tracked as a lot. ST vs LT classification, TLH candidates, LTCG countdown." />
+        <CardHeader helpSection="tax-lots" title="Tax lots" subtitle="Each execution tracked as a lot. ST vs LT classification, TLH candidates, LTCG countdown." />
         <div className="h-[80px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Computing tax report…</span>
         </div>
@@ -65,7 +65,7 @@ export function TaxLotTracker({ refreshTick }: { refreshTick?: number }) {
   if (data.lots.length === 0) {
     return (
       <Card>
-        <CardHeader title="Tax lots" subtitle="Log your first execution to see lot-level cost basis, ST vs LT status, and TLH candidates." />
+        <CardHeader helpSection="tax-lots" title="Tax lots" subtitle="Log your first execution to see lot-level cost basis, ST vs LT status, and TLH candidates." />
         <div className="h-[80px] grid place-items-center subtle text-sm">
           No executions logged yet.
         </div>
@@ -76,7 +76,7 @@ export function TaxLotTracker({ refreshTick }: { refreshTick?: number }) {
   const t = data.totals;
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="tax-lots"
         title="Tax lots & TLH"
         subtitle="Each execution = a tax lot. STCG (held ≤ 1 yr, taxed up to 37%) vs LTCG (> 1 yr, taxed 20%). TLH = harvest unrealized losses now to offset future gains."
         right={

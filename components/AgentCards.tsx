@@ -55,7 +55,7 @@ const TONE_TEXT: Record<Tone, string> = {
 export function AgentCards({ agents }: { agents: AgentResult[] }) {
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="agent-cards"
         title="Agent pipeline"
         subtitle="Five deterministic agents cooperate; each card shows its reasoning trace."
       />

@@ -31,7 +31,7 @@ export function PortfolioInsights({ data }: { data: PipelineResult }) {
 
   return (
     <Card>
-      <CardHeader
+      <CardHeader helpSection="portfolio-insights"
         title="Portfolio insights"
         subtitle="Headline numbers, regime tilts, and dry-powder accounting."
       />
