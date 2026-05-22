@@ -12,6 +12,8 @@ import { DeploymentPlan } from "@/components/DeploymentPlan";
 import { AgentCards } from "@/components/AgentCards";
 import { ExecutionLog } from "@/components/ExecutionLog";
 import { FidelityPanel } from "@/components/FidelityPanel";
+import { OverlapAnalysis } from "@/components/OverlapAnalysis";
+import { EquityCurve } from "@/components/EquityCurve";
 import { PortfolioInsights } from "@/components/PortfolioInsights";
 import { Card } from "@/components/ui/Card";
 import { AlertTriangle } from "lucide-react";
@@ -53,18 +55,11 @@ export default async function Page() {
       <HeroSummary data={data} />
       <RegimeBanner regime={data.regime} />
       <PortfolioInsights data={data} />
+      <OverlapAnalysis refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
+      <EquityCurve refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} />
 
       <AllocationTable rows={data.drift} recommendations={data.recommendations} />
-      <AllocationDonut rows={data.drift} />
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <PriceChart tickers={tickers} />
-        <DeploymentPlan tranches={tranches} currentBudget={data.trancheBudget} />
-      </div>
-
-      <AgentCards agents={data.agents} />
-      <FidelityPanel recs={data.recommendations} />
       <ExecutionLog
         tickers={data.drift.map((d) => {
           const rec = data.recommendations.find((r) => r.ticker === d.ticker);
@@ -77,6 +72,15 @@ export default async function Page() {
         capital={data.capital}
         totalDeployed={data.deployedUsd}
       />
+      <AllocationDonut rows={data.drift} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <PriceChart tickers={tickers} />
+        <DeploymentPlan tranches={tranches} currentBudget={data.trancheBudget} />
+      </div>
+
+      <FidelityPanel recs={data.recommendations} />
+      <AgentCards agents={data.agents} />
 
       <footer className="mt-6 p-4 text-xs subtle border-t border-line">
         <strong className="text-ink/80">Educational use only — not investment advice.</strong>{" "}

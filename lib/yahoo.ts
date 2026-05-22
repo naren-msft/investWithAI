@@ -6,7 +6,7 @@ const yahooFinance = new YahooFinance();
 yahooFinance.suppressNotices?.(["yahooSurvey", "ripHistorical"]);
 
 type CacheEntry<T> = { at: number; value: T };
-const CACHE_MS = 5 * 60 * 1000;
+const CACHE_MS = 60 * 1000;
 const cache = new Map<string, CacheEntry<unknown>>();
 
 function getCache<T>(key: string): T | undefined {

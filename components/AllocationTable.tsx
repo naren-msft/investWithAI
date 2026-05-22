@@ -1,8 +1,9 @@
+import Link from "next/link";
 import type { BuyRecommendation, DriftRow } from "@/types";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { fmtPct, fmtUsd } from "@/lib/format";
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, AlertCircle } from "lucide-react";
 
 export function AllocationTable({
   rows,
@@ -17,7 +18,7 @@ export function AllocationTable({
     <Card>
       <CardHeader
         title="Allocation table"
-        subtitle="Today = live intraday % change.  Drift = target $ − current $.  Buy this tranche = dollars the Execution Agent will deploy now (effective weight × tranche, capped at remaining drift).  Δ after buys = drift remaining once those buys execute."
+        subtitle="Today = live intraday % change.  Drift = target $ − current $.  Buy this tranche = dollars to deploy now.  Δ after buys = drift remaining.  ⚠️ = drift > 3% (rebalance candidate).  Click ticker for full research page."
       />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -50,7 +51,12 @@ export function AllocationTable({
               const fillPct = r.targetUsd > 0 ? Math.min(100, ((r.currentUsd + recDollars) / r.targetUsd) * 100) : 0;
               return (
                 <tr key={r.ticker} className="border-t border-line">
-                  <td className="py-2 pr-3 font-medium" title={r.name}>{r.ticker}</td>
+                  <td className="py-2 pr-3 font-medium" title={r.name}>
+                    <Link href={`/etf/${r.ticker}`} className="hover:underline">{r.ticker}</Link>
+                    {Math.abs(r.driftPct) > 0.03 && (
+                      <AlertCircle className="inline-block w-3 h-3 ml-1 text-amber-700 dark:text-amber-300" />
+                    )}
+                  </td>
                   <td className="py-2 pr-3 subtle truncate max-w-[200px]" title={r.name}>{r.role}</td>
                   <td className="py-2 pr-3 text-right font-mono subtle">{(r.expense * 100).toFixed(2)}%</td>
                   <td className="py-2 pr-3 text-right"><DayChange pct={r.dayChangePct} /></td>

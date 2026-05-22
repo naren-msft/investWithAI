@@ -2,6 +2,7 @@ import type { PipelineResult } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { fmtUsd } from "@/lib/format";
 
 export function HeroSummary({ data }: { data: PipelineResult }) {
@@ -22,10 +23,11 @@ export function HeroSummary({ data }: { data: PipelineResult }) {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Badge variant="info">As of {new Date(data.asOf).toLocaleString()}</Badge>
+          <Badge variant="info">As of {new Date(data.asOf).toLocaleTimeString()}</Badge>
           <Badge variant={data.dayPnlUsd >= 0 ? "success" : "danger"}>
             Day P/L {fmtUsd(data.dayPnlUsd, true)}
           </Badge>
+          <AutoRefresh />
           <ThemeToggle />
         </div>
       </div>
