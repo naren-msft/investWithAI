@@ -8,12 +8,18 @@ import { HelpCircle } from "lucide-react";
 import { fmtUsd } from "@/lib/format";
 
 export function HeroSummary({ data }: { data: PipelineResult }) {
-  const items = [
-    { label: "Total capital",   value: fmtUsd(data.capital) },
-    { label: "Portfolio value", value: fmtUsd(data.portfolioValue) },
-    { label: "Deployed",        value: fmtUsd(data.deployedUsd) },
-    { label: "Cash · buffer",   value: `${fmtUsd(data.cashUsd)} · ${fmtUsd(data.cashBuffer)}` },
-  ];
+  const deployable = Math.max(0, data.capital - data.cashBuffer);
+  const availableToDeploy = Math.max(0, data.cashUsd - data.cashBuffer);
+  const deployedPct = deployable > 0 ? Math.min(100, (data.deployedUsd / deployable) * 100) : 0;
+  const availablePct = deployable > 0 ? Math.min(100, (availableToDeploy / deployable) * 100) : 0;
+
+  // Tone for "Available to deploy": fresh-green when most of the powder is
+  // still dry, ambers as it drains, red when nearly empty.
+  const availTone =
+    availablePct >= 75 ? "gain" :
+    availablePct >= 25 ? "warn" :
+                         "loss";
+
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
@@ -40,14 +46,66 @@ export function HeroSummary({ data }: { data: PipelineResult }) {
           <ThemeToggle />
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {items.map((i) => (
-          <div key={i.label} className="rounded-xl bg-surface-2 border border-line px-4 py-3">
-            <div className="text-[11px] uppercase subtle tracking-wider">{i.label}</div>
-            <div className="text-xl font-semibold mt-1">{i.value}</div>
-          </div>
-        ))}
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <StatCell label="Total capital"    value={fmtUsd(data.capital)} />
+        <StatCell label="Portfolio value"  value={fmtUsd(data.portfolioValue)} />
+        <StatCell
+          label="Deployed"
+          value={fmtUsd(data.deployedUsd)}
+          fillPct={deployedPct}
+          fillTone="gain"
+          subline={`${deployedPct.toFixed(0)}% of ${fmtUsd(deployable)} deployable`}
+        />
+        <StatCell
+          label="Available to deploy"
+          value={fmtUsd(availableToDeploy)}
+          fillPct={availablePct}
+          fillTone={availTone}
+          subline={`${availablePct.toFixed(0)}% of dry powder left`}
+        />
+        <StatCell
+          label="Reserved buffer"
+          value={fmtUsd(data.cashBuffer)}
+          subline="Locked — never deployed"
+        />
       </div>
     </Card>
+  );
+}
+
+function StatCell({
+  label,
+  value,
+  fillPct,
+  fillTone,
+  subline,
+}: {
+  label: string;
+  value: string;
+  fillPct?: number;
+  fillTone?: "gain" | "warn" | "loss";
+  subline?: string;
+}) {
+  const baseTint =
+    fillTone === "gain" ? "bg-emerald-500"
+    : fillTone === "warn" ? "bg-amber-500"
+    : fillTone === "loss" ? "bg-red-500"
+    : "bg-brand";
+  return (
+    <div className="rounded-xl bg-surface-2 border border-line px-4 py-3 relative overflow-hidden">
+      {fillPct != null && (
+        <div
+          className={`absolute inset-y-0 left-0 ${baseTint} opacity-15`}
+          style={{ width: `${Math.max(0, Math.min(100, fillPct))}%` }}
+          aria-hidden
+        />
+      )}
+      <div className="relative">
+        <div className="text-[11px] uppercase subtle tracking-wider">{label}</div>
+        <div className="text-xl font-semibold mt-1">{value}</div>
+        {subline && <div className="mt-0.5 text-[10px] subtle">{subline}</div>}
+      </div>
+    </div>
   );
 }
