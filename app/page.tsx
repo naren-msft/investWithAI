@@ -12,6 +12,8 @@ import { DeploymentPlan } from "@/components/DeploymentPlan";
 import { AgentCards } from "@/components/AgentCards";
 import { ExecutionLog } from "@/components/ExecutionLog";
 import { FidelityPanel } from "@/components/FidelityPanel";
+import { DividendTracker } from "@/components/DividendTracker";
+import { TaxLotTracker } from "@/components/TaxLotTracker";
 import { ChangeBanner } from "@/components/ChangeBanner";
 import { OverlapAnalysis } from "@/components/OverlapAnalysis";
 import { EquityCurve } from "@/components/EquityCurve";
@@ -59,6 +61,8 @@ export default async function Page() {
       <PortfolioInsights data={data} />
       <OverlapAnalysis refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <EquityCurve refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
+      <DividendTracker refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
+      <TaxLotTracker  refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} />
 
       <AllocationTable rows={data.drift} recommendations={data.recommendations} />
