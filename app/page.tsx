@@ -63,7 +63,7 @@ export default async function Page() {
       <EquityCurve refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <DividendTracker refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <TaxLotTracker  refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
-      <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} />
+      <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} drift={data.drift} signals={data.signals} />
 
       <AllocationTable rows={data.drift} recommendations={data.recommendations} />
       <ExecutionLog
