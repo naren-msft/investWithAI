@@ -1,8 +1,7 @@
 import type { BuyRecommendation, SkippedBuy } from "@/types";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { LinkButton } from "@/components/ui/Button";
-import { FIDELITY_TRADE_URL } from "@/config/portfolio";
+import { FIDELITY_TRADE_URL, ROBINHOOD_TRADE_URL, SCHWAB_TRADE_URL } from "@/config/portfolio";
 import { fmtUsd, fmtNum } from "@/lib/format";
 import { DayChange } from "@/components/AllocationTable";
 import { ExternalLink, TrendingUp } from "lucide-react";
@@ -69,11 +68,37 @@ export function BuyRecommendations({
                   <Stat label="MACD h" value={fmtNum(r.macdHist, 3)} />
                 </div>
                 <p className="text-[11px] subtle mt-3 leading-relaxed">{r.reason}</p>
-                <div className="mt-3 flex items-center gap-2">
-                  <LinkButton href={FIDELITY_TRADE_URL(r.ticker)} target="_blank" rel="noreferrer" variant="primary" className="text-xs">
-                    <TrendingUp className="w-3.5 h-3.5" /> Trade on Fidelity
-                    <ExternalLink className="w-3 h-3" />
-                  </LinkButton>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <a
+                    href={FIDELITY_TRADE_URL(r.ticker)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium px-2 py-1 transition-colors"
+                    title={`Trade ${r.ticker} on Fidelity`}
+                  >
+                    <TrendingUp className="w-3 h-3" /> Fidelity
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                  <a
+                    href={ROBINHOOD_TRADE_URL(r.ticker)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-[#00C805] hover:bg-[#00B305] text-black text-[11px] font-medium px-2 py-1 transition-colors"
+                    title={`Trade ${r.ticker} on Robinhood`}
+                  >
+                    <TrendingUp className="w-3 h-3" /> Robinhood
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                  <a
+                    href={SCHWAB_TRADE_URL(r.ticker)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-md bg-[#00A0DF] hover:bg-[#0090CF] text-white text-[11px] font-medium px-2 py-1 transition-colors"
+                    title={`Trade ${r.ticker} on Charles Schwab`}
+                  >
+                    <TrendingUp className="w-3 h-3" /> Schwab
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
                 </div>
               </div>
             ))}

@@ -145,6 +145,12 @@ export const FIDELITY_TRADE_URL = (symbol: string) =>
 export const FIDELITY_QUOTE_URL = (symbol: string) =>
   `https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=${encodeURIComponent(symbol)}`;
 
+export const ROBINHOOD_TRADE_URL = (symbol: string) =>
+  `https://robinhood.com/stocks/${encodeURIComponent(symbol)}`;
+
+export const SCHWAB_TRADE_URL = (symbol: string) =>
+  `https://client.schwab.com/app/trade/tom/#/trade?symbol=${encodeURIComponent(symbol)}`;
+
 // ETF portfolio bundle — wraps the constants above into the generic shape
 // consumed by runPipeline() so the same pipeline serves both ETF and Stocks.
 export const etfBundle: PortfolioBundle = {
