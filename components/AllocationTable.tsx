@@ -36,7 +36,7 @@ export function AllocationTable({
               <th className="py-2 pr-3 text-right">Target $</th>
               <th className="py-2 pr-3 text-right">Current $</th>
               <th className="py-2 pr-3 text-right">Drift $</th>
-              <th className="py-2 pr-3 text-right" title="Dollars the Execution Agent will deploy into this ETF in the current tranche.">
+              <th className="py-2 pr-3 text-right" title="Dollars the Execution Agent will deploy into this position in the current tranche.">
                 Buy this tranche
               </th>
               <th className="py-2 pr-3 text-right" title="Drift remaining after the recommended buy executes.">

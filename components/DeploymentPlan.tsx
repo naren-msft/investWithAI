@@ -21,6 +21,8 @@ export function DeploymentPlan({
 }) {
   const trancheByPhase = new Map(TRANCHES.map((t) => [t.phase, t]));
 
+  const p5 = gates.find((g) => g.phase === 5);
+  const p5Note = p5 ? `P5 = ${fmtUsd(p5.size)} cash buffer release. ` : "";
   const anchorSummary = `${anchor.daysSinceStart}d since P1 · SPY ${anchor.spyDrawdownFromPeak > 0 ? "−" : ""}${(anchor.spyDrawdownFromPeak * 100).toFixed(2)}% from peak · max DD seen −${(anchor.maxDrawdownSinceAnchor * 100).toFixed(2)}%`;
 
   return (
@@ -28,7 +30,7 @@ export function DeploymentPlan({
       <CardHeader
         helpSection="deployment-plan"
         title="Staged capital deployment"
-        subtitle={`5-phase plan gated by time, SPY drawdown, and trend confirmation. P5 = $60K cash buffer release. · ${anchorSummary}`}
+        subtitle={`5-phase plan gated by time, SPY drawdown, and trend confirmation. ${p5Note}· ${anchorSummary}`}
         right={<Badge variant="info">Next budget {fmtUsd(currentBudget)}</Badge>}
       />
       <div className="space-y-2">

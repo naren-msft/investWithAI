@@ -101,8 +101,8 @@ export function RiskPanel({ data }: { data: PipelineResult }) {
       <div className="mt-3 text-[11px] subtle leading-relaxed">
         β is computed from 252 trading days of daily log-returns vs SPY (cached 1h). Worst 12mo is the
         empirical worst 252-day return over the last ~3 years. Yahoo Finance&apos;s published β uses
-        3–5 year monthly data and materially understates daily β for thematic ETFs (e.g. SMH); these
-        are computed in-house. Bond/short-duration ETFs may show β ≈ 0.
+        3–5 year monthly data and materially understates daily β for thematic / high-volatility names
+        (e.g. SMH, NVDA); these are computed in-house. Bond / short-duration / low-vol holdings may show β ≈ 0.
       </div>
     </Card>
   );

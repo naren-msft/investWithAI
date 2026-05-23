@@ -14,7 +14,7 @@ const ICONS: Record<string, React.ReactNode> = {
 const PURPOSE: Record<string, string> = {
   PortfolioStateAgent:    "Reads current holdings, prices, computes drift vs targets.",
   AllocationStrategyAgent:"Applies regime multiplier to underweights, normalizes effective weights.",
-  SignalAnalysisAgent:    "Per-ETF RSI-14 + MACD(12,26,9); emits BUY / HOLD / AVOID.",
+  SignalAnalysisAgent:    "Per-symbol RSI-14 + MACD(12,26,9); emits BUY / HOLD / AVOID.",
   CapitalDeploymentAgent: "Sizes the next tranche from cash − buffer × regime, capped at phase remaining.",
   ExecutionDecisionAgent: "Joins drift × signal × tranche → concrete BUY tickets.",
 };
