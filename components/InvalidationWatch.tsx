@@ -80,7 +80,7 @@ export function InvalidationWatch({
   if (loading) {
     return (
       <Card>
-        <CardHeader title="Elliott Wave · Invalidation Watch" subtitle="Per-symbol wave count + the price level where the count is wrong." />
+        <CardHeader helpSection="invalidation-watch" title="Elliott Wave · Invalidation Watch" subtitle="Per-symbol wave count + the price level where the count is wrong." />
         <div className="h-[80px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading wave data…</span>
         </div>
@@ -109,6 +109,7 @@ export function InvalidationWatch({
   return (
     <Card>
       <CardHeader
+        helpSection="invalidation-watch"
         title={
           <button
             type="button"

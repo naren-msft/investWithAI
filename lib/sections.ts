@@ -512,6 +512,54 @@ export const SECTIONS: HelpSection[] = [
     ],
     related: ["scenarios", "regime-banner", "deployment-plan"],
   },
+  {
+    id: "invalidation-watch",
+    title: "Elliott Wave · Invalidation Watch",
+    oneLiner: "Per-symbol wave phase + the exact price that would break the count.",
+    whatItIs:
+      "An auto-detected Elliott Wave count for each stock in the portfolio. For every ticker it labels the current wave phase (W1–W5, A/B/C, or UNKNOWN), the invalidation price (the level at which the labeled count is proven wrong), and a primary target. Counts come from a ZigZag-pivot + Fibonacci-ratio heuristic; manual overrides in config/elliott-wave.json take precedence.",
+    whyItMatters:
+      "Elliott Wave's real practical value isn't predicting wave tops — it's giving you a count-specific invalidation price. Instead of a vague 'stop loss', you get a concrete level whose break means a specific structural thesis is wrong, so you can size and unwind with intention. The Invalidation Watch is purely informational today; it does NOT influence position sizing or deployment phases. Treat low-confidence counts skeptically and use it as a sanity check against the existing BUY/HOLD/AVOID pipeline, not as a standalone signal.",
+    howToRead: [
+      "Header badges: 'X breached' (price has broken invalidation — count is wrong), 'Y near' (within 3% of invalidation), 'N of total counted' (auto + manual coverage), 'M manual' (entries pinned in config/elliott-wave.json).",
+      "Alert strip at top: red rows = breached counts (re-evaluate the thesis); amber rows = within 3% of invalidation (watch closely).",
+      "Phase column: W1/W2/W3/W3-of-3 are early-to-strongest trend; W4 is a normal pause; W5 is the final push (be cautious); A/B/C are corrective phases (avoid new longs).",
+      "Distance column: signed % from current price to invalidation. Positive = price safely above invalidation (bullish counts); negative on a bullish phase = breached.",
+      "Confidence: 0–1 score from the Fibonacci fit. < 0.40 = weak structural fit, treat skeptically. > 0.60 = good fit (rare).",
+      "Source: 'auto-zigzag-v1' = computed from price history; anything else = manual entry from config/elliott-wave.json with the date you updated it.",
+    ],
+    faqs: [
+      {
+        q: "What are the three Elliott Wave rules the counter enforces?",
+        a: "(1) Wave 2 cannot retrace more than 100% of Wave 1 (price can't fall below W1's start). (2) Wave 3 is never the shortest among waves 1, 3, and 5. (3) Wave 4 cannot overlap Wave 1's price territory. Any auto-count that violates these is rejected before scoring.",
+      },
+      {
+        q: "What does 'invalidation price' actually mean?",
+        a: "It's the price at which the labeled count is broken. For a bullish phase (W1–W5) it's the level below which the count is wrong (e.g. W2's invalidation = W1's start; W4's = W1's top). For an A/B/C correction it's the level above which the move wasn't actually a correction (e.g. above the prior W5 high = the structure was W4 of higher degree, count moot).",
+      },
+      {
+        q: "Why is my favorite stock showing 'UNKNOWN'?",
+        a: "The auto-counter couldn't fit a clean 5-wave bullish impulse to the recent pivot structure. Common causes: < 40 days of price history, very choppy/sideways action, or pivots that violate the cardinal rules. You can manually set a count by editing config/elliott-wave.json — manual entries take precedence over auto.",
+      },
+      {
+        q: "How is the auto-counter different from a real EW analyst?",
+        a: "Big differences. It only looks at daily closes on a single timeframe, only fits bullish impulses, can't recognize diagonals/truncations/complex corrections, and has no concept of degree (the same chart could be W3 of one degree and W1 of another). It is a deterministic heuristic, not a wave expert. Treat low-confidence counts as suggestions, not signals.",
+      },
+      {
+        q: "What's the ZigZag threshold and why is it tier-aware?",
+        a: "ZigZag emits a pivot when price retraces from the running extreme by ≥ threshold%. Stocks have different typical volatility by tier, so we use: 7% for core (NVDA, ASML…), 9% for growth (CRWV, RBRK…), 12% for speculative (IONQ, QBTS, ARQQ…). Too low a threshold = noise pivots; too high = misses real structure.",
+      },
+      {
+        q: "Does this influence what the dashboard tells me to buy?",
+        a: "No. Today this card is display-only. The existing pipeline (signal analysis, drift, sleeve caps, tier thresholds, phase gating) is unchanged. If you later want EW to gate or scale recommendations, that's a deliberate additional change you'd explicitly approve.",
+      },
+      {
+        q: "How do I override the auto count for a ticker?",
+        a: "Edit config/elliott-wave.json. Set the ticker's phase (W1/W2/W3/W3-of-3/W4/W5/A/B/C/UNKNOWN), invalidationPrice (number), primaryTarget (number or null), confidence (0–1), source (e.g. 'EWF 2026-05-20'), lastUpdated (YYYY-MM-DD). The card picks it up on next refresh; auto-counting is skipped for that ticker.",
+      },
+    ],
+    related: ["recommendations", "risk-profile", "agent-cards"],
+  },
 ];
 
 export function findSection(id: string): HelpSection | undefined {
