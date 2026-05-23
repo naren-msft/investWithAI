@@ -1,0 +1,34 @@
+{
+  "$schema": "Elliott Wave hand-maintained data. Update weekly from elliottwave-forecast.com or your preferred EW source.",
+  "$instructions": [
+    "phase: one of W1 | W2 | W3 | W3-of-3 | W4 | W5 | A | B | C | UNKNOWN",
+    "invalidationPrice: the price at which the labeled count is broken (W2<=W1 start, W4 cannot overlap W1 top, etc). null = no count.",
+    "primaryTarget: next expected wave terminal price. null = unknown.",
+    "confidence: 0..1 — your subjective confidence in the count.",
+    "degree: e.g. Primary, Intermediate, Minor — for reference only.",
+    "source: free-text citation (e.g. 'EWF 2026-05-20', 'self').",
+    "lastUpdated: ISO date string."
+  ],
+  "asOf": "2026-05-23",
+  "counts": {
+    "NVDA": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "TSM":  { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "AVGO": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "ASML": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "MU":   { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "VRT":  { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "RBRK": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage — short price history" },
+    "CRWV": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "AAOI": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage" },
+    "BE":   { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "IONQ": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "RGTI": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "QBTS": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": null },
+    "INDI": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage" },
+    "QNC":  { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage — microcap" },
+    "LAES": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage — microcap" },
+    "BTQ":  { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage — microcap" },
+    "ARQQ": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage — SPAC origin" },
+    "ZENA": { "phase": "UNKNOWN", "invalidationPrice": null, "primaryTarget": null, "confidence": 0, "degree": null, "source": null, "lastUpdated": null, "note": "No public EW coverage — microcap" }
+  }
+}

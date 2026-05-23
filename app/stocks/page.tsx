@@ -16,6 +16,7 @@ import { EquityCurve } from "@/components/EquityCurve";
 import { PortfolioInsights } from "@/components/PortfolioInsights";
 import { ExposurePanel } from "@/components/ExposurePanel";
 import { RiskPanel } from "@/components/RiskPanel";
+import { InvalidationWatch } from "@/components/InvalidationWatch";
 import { UnderDeploymentSummary } from "@/components/UnderDeploymentSummary";
 import { ScenarioPanel } from "@/components/ScenarioPanel";
 import { NextBestAllocation } from "@/components/NextBestAllocation";
@@ -79,6 +80,7 @@ export default async function StocksPage({
       <NextBestAllocation data={data} />
       <ExposurePanel data={data} />
       <RiskPanel data={data} />
+      <InvalidationWatch refreshTick={refreshTick} apiPrefix={API_PREFIX} />
       <ScenarioPanel data={data} />
       <EquityCurve refreshTick={refreshTick} apiPrefix={API_PREFIX} />
       <DividendTracker refreshTick={refreshTick} apiPrefix={API_PREFIX} />
