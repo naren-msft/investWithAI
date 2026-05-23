@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { BuyRecommendation } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { FIDELITY_TRADE_URL } from "@/config/portfolio";
@@ -24,18 +24,19 @@ export function FidelityPanel({ recs }: { recs: BuyRecommendation[] }) {
   }
 
   return (
-    <Card>
-      <CardHeader helpSection="fidelity-panel"
-        title="Fidelity execution"
-        subtitle="Copy these tickets, then open Fidelity per ticker to confirm and place orders."
-        right={
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={copy}>
-              <Copy className="w-3.5 h-3.5" /> {copied ? "Copied!" : "Copy tickets"}
-            </Button>
-          </div>
-        }
-      />
+    <CollapsibleCard
+      storageKey="card:fidelity-panel"
+      helpSection="fidelity-panel"
+      title="Fidelity execution"
+      subtitle="Copy these tickets, then open Fidelity per ticker to confirm and place orders."
+      right={
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={copy}>
+            <Copy className="w-3.5 h-3.5" /> {copied ? "Copied!" : "Copy tickets"}
+          </Button>
+        </div>
+      }
+    >
       <pre className="text-xs font-mono bg-surface-2 border border-line rounded-lg p-3 whitespace-pre-wrap leading-relaxed">
 {text}
       </pre>
@@ -60,6 +61,6 @@ export function FidelityPanel({ recs }: { recs: BuyRecommendation[] }) {
           Clicking a ticker opens Fidelity&apos;s trade ticket (you&apos;ll be prompted to sign in). Review before placing the order.
         </span>
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }

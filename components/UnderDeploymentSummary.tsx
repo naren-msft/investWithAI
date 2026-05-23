@@ -1,5 +1,5 @@
 import type { PipelineResult, SkippedBuyCode } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd } from "@/lib/format";
 
@@ -42,19 +42,19 @@ export function UnderDeploymentSummary({ data, assetNoun = "ETF" }: { data: Pipe
   const sizingReasons = sizingExplain(data);
 
   return (
-    <Card>
-      <CardHeader
-        helpSection="under-deployment"
-        title="Under-deployment explained"
-        subtitle={`Why isn't every dollar working? Tranche sizing + per-${assetNoun} blocking reasons at a glance.`}
-        right={
-          <Badge variant={unallocated > 0 ? "warn" : "success"}>
-            {unallocated > 0
-              ? `${fmtUsd(unallocated)} unallocated`
-              : "Tranche fully allocated"}
-          </Badge>
-        }
-      />
+    <CollapsibleCard
+      storageKey="card:under-deployment"
+      helpSection="under-deployment"
+      title="Under-deployment explained"
+      subtitle={`Why isn't every dollar working? Tranche sizing + per-${assetNoun} blocking reasons at a glance.`}
+      right={
+        <Badge variant={unallocated > 0 ? "warn" : "success"}>
+          {unallocated > 0
+            ? `${fmtUsd(unallocated)} unallocated`
+            : "Tranche fully allocated"}
+        </Badge>
+      }
+    >
 
       {/* Numeric breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -102,7 +102,7 @@ export function UnderDeploymentSummary({ data, assetNoun = "ETF" }: { data: Pipe
           </div>
         </div>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

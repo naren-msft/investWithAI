@@ -1,6 +1,6 @@
 import type { PhaseGateState, PipelineResult, TrancheTriggers } from "@/types";
 import { TRANCHES } from "@/config/portfolio";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { fmtUsd } from "@/lib/format";
@@ -26,13 +26,13 @@ export function DeploymentPlan({
   const anchorSummary = `${anchor.daysSinceStart}d since P1 · SPY ${anchor.spyDrawdownFromPeak > 0 ? "−" : ""}${(anchor.spyDrawdownFromPeak * 100).toFixed(2)}% from peak · max DD seen −${(anchor.maxDrawdownSinceAnchor * 100).toFixed(2)}%`;
 
   return (
-    <Card>
-      <CardHeader
-        helpSection="deployment-plan"
-        title="Staged capital deployment"
-        subtitle={`5-phase plan gated by time, SPY drawdown, and trend confirmation. ${p5Note}· ${anchorSummary}`}
-        right={<Badge variant="info">Next budget {fmtUsd(currentBudget)}</Badge>}
-      />
+    <CollapsibleCard
+      storageKey="card:deployment-plan"
+      helpSection="deployment-plan"
+      title="Staged capital deployment"
+      subtitle={`5-phase plan gated by time, SPY drawdown, and trend confirmation. ${p5Note}· ${anchorSummary}`}
+      right={<Badge variant="info">Next budget {fmtUsd(currentBudget)}</Badge>}
+    >
       <div className="space-y-2">
         {gates.map((g) => {
           const cfg = trancheByPhase.get(g.phase);
@@ -47,7 +47,7 @@ export function DeploymentPlan({
           );
         })}
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

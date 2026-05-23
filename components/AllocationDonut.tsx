@@ -1,7 +1,7 @@
 "use client";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { DriftRow } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { fmtPct, fmtUsd } from "@/lib/format";
 
 const COLORS = ["#22c55e", "#60a5fa", "#f59e0b", "#a78bfa", "#f472b6", "#34d399", "#fb923c", "#38bdf8"];
@@ -9,8 +9,12 @@ const COLORS = ["#22c55e", "#60a5fa", "#f59e0b", "#a78bfa", "#f472b6", "#34d399"
 export function AllocationDonut({ rows }: { rows: DriftRow[] }) {
   const data = rows.map((r) => ({ name: r.ticker, value: r.targetPct, usd: r.targetUsd }));
   return (
-    <Card>
-      <CardHeader helpSection="donut" title="Target allocation" subtitle="Regime-adjusted target weights." />
+    <CollapsibleCard
+      storageKey="card:allocation-donut"
+      helpSection="donut"
+      title="Target allocation"
+      subtitle="Regime-adjusted target weights."
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div className="h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -47,6 +51,6 @@ export function AllocationDonut({ rows }: { rows: DriftRow[] }) {
           ))}
         </div>
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }

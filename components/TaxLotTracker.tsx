@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd } from "@/lib/format";
 import { AlertTriangle, Calendar, Loader2 } from "lucide-react";
@@ -52,42 +52,41 @@ export function TaxLotTracker({ refreshTick, apiPrefix = "/api" }: { refreshTick
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader helpSection="tax-lots" title="Tax lots" subtitle="Each execution tracked as a lot. ST vs LT classification, TLH candidates, LTCG countdown." />
+      <CollapsibleCard storageKey="card:tax-lots" helpSection="tax-lots" title="Tax lots" subtitle="Each execution tracked as a lot. ST vs LT classification, TLH candidates, LTCG countdown.">
         <div className="h-[80px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Computing tax report…</span>
         </div>
-      </Card>
+      </CollapsibleCard>
     );
   }
   if (!data) return null;
 
   if (data.lots.length === 0) {
     return (
-      <Card>
-        <CardHeader helpSection="tax-lots" title="Tax lots" subtitle="Log your first execution to see lot-level cost basis, ST vs LT status, and TLH candidates." />
+      <CollapsibleCard storageKey="card:tax-lots" helpSection="tax-lots" title="Tax lots" subtitle="Log your first execution to see lot-level cost basis, ST vs LT status, and TLH candidates.">
         <div className="h-[80px] grid place-items-center subtle text-sm">
           No executions logged yet.
         </div>
-      </Card>
+      </CollapsibleCard>
     );
   }
 
   const t = data.totals;
   return (
-    <Card>
-      <CardHeader helpSection="tax-lots"
-        title="Tax lots & TLH"
-        subtitle="Each execution = a tax lot. STCG (held ≤ 1 yr, taxed up to 37%) vs LTCG (> 1 yr, taxed 20%). TLH = harvest unrealized losses now to offset future gains."
-        right={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant={t.unrealizedGain >= 0 ? "success" : "danger"}>
-              Unrealized {t.unrealizedGain >= 0 ? "+" : ""}{fmtUsd(t.unrealizedGain)} ({(t.unrealizedGainPct * 100).toFixed(2)}%)
-            </Badge>
-            <Badge variant="default">{data.lots.length} lot{data.lots.length === 1 ? "" : "s"}</Badge>
-          </div>
-        }
-      />
+    <CollapsibleCard
+      storageKey="card:tax-lots"
+      helpSection="tax-lots"
+      title="Tax lots & TLH"
+      subtitle="Each execution = a tax lot. STCG (held ≤ 1 yr, taxed up to 37%) vs LTCG (> 1 yr, taxed 20%). TLH = harvest unrealized losses now to offset future gains."
+      right={
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant={t.unrealizedGain >= 0 ? "success" : "danger"}>
+            Unrealized {t.unrealizedGain >= 0 ? "+" : ""}{fmtUsd(t.unrealizedGain)} ({(t.unrealizedGainPct * 100).toFixed(2)}%)
+          </Badge>
+          <Badge variant="default">{data.lots.length} lot{data.lots.length === 1 ? "" : "s"}</Badge>
+        </div>
+      }
+    >
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -183,7 +182,7 @@ export function TaxLotTracker({ refreshTick, apiPrefix = "/api" }: { refreshTick
       <div className="mt-3 text-[10px] subtle">
         Rates assumed: STCG 37% (top marginal), LTCG 20% (top). Actual rates depend on your bracket. TLH threshold: unrealized loss &gt; $100. This is informational only — not tax advice; consult a CPA before harvesting.
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

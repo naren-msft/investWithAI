@@ -1,5 +1,5 @@
 import type { PipelineResult, ScenarioResult } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd } from "@/lib/format";
 import { HelpLink } from "@/components/ui/HelpLink";
@@ -34,13 +34,13 @@ export function ScenarioPanel({ data }: { data: PipelineResult }) {
   const expectedDeltaPct = portfolioValue > 0 ? expectedDelta / portfolioValue : 0;
 
   return (
-    <Card>
-      <CardHeader
-        helpSection="scenarios"
-        title="Forward-looking scenarios"
-        subtitle="What-if simulations using current invested-β. Regime is NOT recomputed — trend-confirm gates are explicit assumptions where flagged."
-        right={<Badge variant="info">{scenarios.length} scenarios</Badge>}
-      />
+    <CollapsibleCard
+      storageKey="card:scenarios"
+      helpSection="scenarios"
+      title="Forward-looking scenarios"
+      subtitle="What-if simulations using current invested-β. Regime is NOT recomputed — trend-confirm gates are explicit assumptions where flagged."
+      right={<Badge variant="info">{scenarios.length} scenarios</Badge>}
+    >
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {scenarios.map((s) => (
@@ -92,7 +92,7 @@ export function ScenarioPanel({ data }: { data: PipelineResult }) {
         existing historical SPY peak as the drawdown anchor — only spot price moves; the time gate is unchanged
         from today.
       </p>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { AlertTriangle, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface StockExposure {
   symbol: string;
@@ -20,24 +20,10 @@ interface OverlapResult {
   totalTopHoldingsCoverage: number;
 }
 
-const KEY = "investai.overlap.open";
-
 export function OverlapAnalysis({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [data, setData] = useState<OverlapResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-
-  // Persist expand/collapse choice across reloads.
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(KEY);
-      if (v === "open") setOpen(true);
-      else if (v === "closed") setOpen(false);
-    } catch {}
-    setHydrated(true);
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -54,32 +40,31 @@ export function OverlapAnalysis({ refreshTick, apiPrefix = "/api" }: { refreshTi
     return () => { alive = false; };
   }, [refreshTick]);
 
-  function toggle() {
-    setOpen((v) => {
-      const next = !v;
-      try { localStorage.setItem(KEY, next ? "open" : "closed"); } catch {}
-      return next;
-    });
-  }
-
   if (loading) {
     return (
-      <Card>
-        <CardHeader helpSection="overlap" title="Hidden concentration & sector X-ray" subtitle="Computing true single-stock and sector exposures across all ETFs…" />
+      <CollapsibleCard
+        storageKey="card:overlap"
+        helpSection="overlap"
+        title="Hidden concentration & sector X-ray"
+        subtitle="Computing true single-stock and sector exposures across all ETFs…"
+      >
         <div className="h-[60px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Fetching holdings…</span>
         </div>
-      </Card>
+      </CollapsibleCard>
     );
   }
   if (err || !data) {
     return (
-      <Card>
-        <CardHeader helpSection="overlap" title="Hidden concentration & sector X-ray" />
+      <CollapsibleCard
+        storageKey="card:overlap"
+        helpSection="overlap"
+        title="Hidden concentration & sector X-ray"
+      >
         <div className="text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" /> {err ?? "no data"}
         </div>
-      </Card>
+      </CollapsibleCard>
     );
   }
 
@@ -88,41 +73,28 @@ export function OverlapAnalysis({ refreshTick, apiPrefix = "/api" }: { refreshTi
   const top3 = data.topStockExposures.slice(0, 3).map((s) => `${s.symbol} ${(s.effectiveWeight * 100).toFixed(1)}%`).join(" · ");
 
   return (
-    <Card>
-      <CardHeader helpSection="overlap"
-        title="Hidden concentration & sector X-ray"
-        subtitle="Decomposes all ETFs into their underlying stocks and sectors. Same stock held in 3 ETFs adds up."
-        right={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="info">Coverage {(data.totalTopHoldingsCoverage * 100).toFixed(0)}%</Badge>
-            {heaviest && (
-              <Badge variant={heaviest.effectiveWeight > 0.12 ? "danger" : heaviest.effectiveWeight > 0.08 ? "warn" : "default"}>
-                Heaviest: {heaviest.symbol} ≈ {(heaviest.effectiveWeight * 100).toFixed(1)}%
-              </Badge>
-            )}
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={open}
-              className="inline-flex items-center gap-1 rounded-md border border-line bg-surface-2 hover:bg-surface-3 text-xs px-2 py-1 transition-colors"
-              title={open ? "Collapse" : "Expand"}
-            >
-              {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-              {open ? "Collapse" : "Expand"}
-            </button>
-          </div>
-        }
-      />
-
-      {hydrated && !open ? (
+    <CollapsibleCard
+      storageKey="card:overlap"
+      helpSection="overlap"
+      title="Hidden concentration & sector X-ray"
+      subtitle="Decomposes all ETFs into their underlying stocks and sectors. Same stock held in 3 ETFs adds up."
+      right={
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="info">Coverage {(data.totalTopHoldingsCoverage * 100).toFixed(0)}%</Badge>
+          {heaviest && (
+            <Badge variant={heaviest.effectiveWeight > 0.12 ? "danger" : heaviest.effectiveWeight > 0.08 ? "warn" : "default"}>
+              Heaviest: {heaviest.symbol} ≈ {(heaviest.effectiveWeight * 100).toFixed(1)}%
+            </Badge>
+          )}
+        </div>
+      }
+      summary={
         <div className="text-xs subtle">
           Top 3 effective single-stock exposures: <span className="font-mono text-ink">{top3}</span>. Click <span className="font-medium">Expand</span> for full breakdown + sector X-ray.
         </div>
-      ) : null}
-
-      {open ? (
-        <>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      }
+    >
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <div>
               <div className="text-[11px] uppercase tracking-wider subtle mb-2">Top single-stock exposures (effective % of total portfolio)</div>
               <div className="space-y-2">
@@ -165,16 +137,14 @@ export function OverlapAnalysis({ refreshTick, apiPrefix = "/api" }: { refreshTi
                   );
                 })}
                 {data.sectorExposures.length === 0 && <div className="text-sm subtle">No sector data could be fetched.</div>}
-              </div>
-            </div>
           </div>
+        </div>
+      </div>
 
-          <div className="mt-3 text-[11px] subtle">
-            Yahoo Finance returns only top-10 holdings per ETF, so coverage is ~{(data.totalTopHoldingsCoverage * 100).toFixed(0)}% — these are floor estimates;
-            actual concentration may be slightly higher. Bond ETFs (FBND) don&apos;t decompose into stocks.
-          </div>
-        </>
-      ) : null}
-    </Card>
+      <div className="mt-3 text-[11px] subtle">
+        Yahoo Finance returns only top-10 holdings per ETF, so coverage is ~{(data.totalTopHoldingsCoverage * 100).toFixed(0)}% — these are floor estimates;
+        actual concentration may be slightly higher. Bond ETFs (FBND) don&apos;t decompose into stocks.
+      </div>
+    </CollapsibleCard>
   );
 }

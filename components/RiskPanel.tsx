@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import type { PipelineResult } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { fmtNum, fmtPct } from "@/lib/format";
-import { ChevronDown, ChevronRight } from "lucide-react";
 
 // Forward-looking risk panel: portfolio beta (1yr daily regression vs SPY),
 // per-ETF worst-rolling-12mo and 2σ parametric annual DD, and concentration
@@ -16,30 +14,16 @@ export function RiskPanel({ data }: { data: PipelineResult }) {
   const r = data.forwardRisk;
   const betaTone = forwardBetaTone(r.portfolioBeta);
   const concTone = concentrationTone(r.concentrationLabel);
-  const [collapsed, setCollapsed] = useState(true);
 
   return (
-    <Card>
-      <CardHeader
-        helpSection="risk-profile"
-        title={
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="inline-flex items-center gap-1.5 text-left hover:opacity-80"
-            aria-expanded={!collapsed}
-            title={collapsed ? "Expand" : "Collapse"}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
-            <span>Risk profile</span>
-          </button>
-        }
-        subtitle="Forward-looking risk based on 1–3 years of price history — independent of how much you've deployed."
-        right={<Badge variant="info">portfolio β {fmtNum(r.portfolioBeta, 2)}</Badge>}
-      />
-
-      {!collapsed && (
-        <>
+    <CollapsibleCard
+      storageKey="card:risk-panel"
+      defaultCollapsed
+      helpSection="risk-profile"
+      title="Risk profile"
+      subtitle="Forward-looking risk based on 1–3 years of price history — independent of how much you've deployed."
+      right={<Badge variant="info">portfolio β {fmtNum(r.portfolioBeta, 2)}</Badge>}
+    >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <RiskTile
           label="Target β vs SPY"
@@ -122,9 +106,7 @@ export function RiskPanel({ data }: { data: PipelineResult }) {
         3–5 year monthly data and materially understates daily β for thematic / high-volatility names
         (e.g. SMH, NVDA); these are computed in-house. Bond / short-duration / low-vol holdings may show β ≈ 0.
       </div>
-        </>
-      )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

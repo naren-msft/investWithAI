@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 
 interface Point {
@@ -43,20 +43,21 @@ export function PriceChart({ tickers }: { tickers: string[] }) {
   }, [symbol]);
 
   return (
-    <Card>
-      <CardHeader helpSection="price-chart"
-        title="Price · RSI · MACD"
-        subtitle="6-month daily close + RSI-14 + MACD(12,26,9). Switch tickers to inspect signals."
-        right={
-          <select
-            className="bg-surface-2 border border-line rounded-md text-sm px-2 py-1"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-          >
-            {tickers.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        }
-      />
+    <CollapsibleCard
+      storageKey="card:price-chart"
+      helpSection="price-chart"
+      title="Price · RSI · MACD"
+      subtitle="6-month daily close + RSI-14 + MACD(12,26,9). Switch tickers to inspect signals."
+      right={
+        <select
+          className="bg-surface-2 border border-line rounded-md text-sm px-2 py-1"
+          value={symbol}
+          onChange={(e) => setSymbol(e.target.value)}
+        >
+          {tickers.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      }
+    >
       {err && <Badge variant="danger">Error: {err}</Badge>}
 
       <div className="h-[180px] mt-1">
@@ -109,6 +110,6 @@ export function PriceChart({ tickers }: { tickers: string[] }) {
         <span className="inline-flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-[#f59e0b] opacity-55" /> Histogram</span>
       </div>
       {loading && <p className="text-xs subtle mt-2">Loading…</p>}
-    </Card>
+    </CollapsibleCard>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd } from "@/lib/format";
-import { Calendar, DollarSign, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, DollarSign, Loader2 } from "lucide-react";
 
 interface IncomeRow {
   ticker: string;
@@ -28,7 +28,6 @@ interface IncomeReport {
 export function DividendTracker({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [data, setData] = useState<IncomeReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -43,12 +42,17 @@ export function DividendTracker({ refreshTick, apiPrefix = "/api" }: { refreshTi
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader helpSection="dividend-tracker" title="Dividend tracker" subtitle="Projected annual income from your held shares + upcoming ex-dividend dates." />
+      <CollapsibleCard
+        storageKey="card:dividend-tracker"
+        defaultCollapsed
+        helpSection="dividend-tracker"
+        title="Dividend tracker"
+        subtitle="Projected annual income from your held shares + upcoming ex-dividend dates."
+      >
         <div className="h-[80px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Fetching dividend data…</span>
         </div>
-      </Card>
+      </CollapsibleCard>
     );
   }
   if (!data) return null;
@@ -57,36 +61,24 @@ export function DividendTracker({ refreshTick, apiPrefix = "/api" }: { refreshTi
   const monthly = data.totalProjectedAnnual / 12;
 
   return (
-    <Card>
-      <CardHeader helpSection="dividend-tracker"
-        title={
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="inline-flex items-center gap-1.5 text-left hover:opacity-80"
-            aria-expanded={!collapsed}
-            title={collapsed ? "Expand" : "Collapse"}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
-            <span>Dividend tracker</span>
-          </button>
-        }
-        subtitle="Annual income at current shares + blended yield + upcoming ex-dividend dates."
-        right={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="info">Blended yield {(data.blendedYield * 100).toFixed(2)}%</Badge>
-            <Badge variant="success">
-              <DollarSign className="w-3 h-3 mr-0.5" />
-              {fmtUsd(data.totalProjectedAnnual)} / yr
-            </Badge>
-          </div>
-        }
-      />
-
-      {!collapsed && (
-        <>
-          {/* Summary cells */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <CollapsibleCard
+      storageKey="card:dividend-tracker"
+      defaultCollapsed
+      helpSection="dividend-tracker"
+      title="Dividend tracker"
+      subtitle="Annual income at current shares + blended yield + upcoming ex-dividend dates."
+      right={
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="info">Blended yield {(data.blendedYield * 100).toFixed(2)}%</Badge>
+          <Badge variant="success">
+            <DollarSign className="w-3 h-3 mr-0.5" />
+            {fmtUsd(data.totalProjectedAnnual)} / yr
+          </Badge>
+        </div>
+      }
+    >
+      {/* Summary cells */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <Stat label="Annual income (est)"  value={fmtUsd(data.totalProjectedAnnual)} tone={data.totalProjectedAnnual > 0 ? "gain" : undefined} />
             <Stat label="Monthly avg"          value={fmtUsd(monthly)} />
             <Stat label="Blended yield"        value={`${(data.blendedYield * 100).toFixed(2)}%`} />
@@ -122,9 +114,7 @@ export function DividendTracker({ refreshTick, apiPrefix = "/api" }: { refreshTi
               </tbody>
             </table>
           </div>
-        </>
-      )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

@@ -1,5 +1,5 @@
 import type { Regime } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtNum } from "@/lib/format";
 import { CheckCircle2, Circle } from "lucide-react";
@@ -12,12 +12,13 @@ const variantFor = (k: Regime["kind"]) =>
 export function RegimeBanner({ regime }: { regime: Regime }) {
   const hyst = regime.hysteresis;
   return (
-    <Card>
-      <CardHeader helpSection="regime-banner"
-        title="Market regime"
-        subtitle="Multi-factor SPY classifier (price, SMA cross, RSI, ADX) with asymmetric hysteresis. Drives the buy-size multiplier."
-        right={<Badge variant={variantFor(regime.kind)}>{regime.kind.toUpperCase()} · ×{regime.multiplier}</Badge>}
-      />
+    <CollapsibleCard
+      storageKey="card:regime-banner"
+      helpSection="regime-banner"
+      title="Market regime"
+      subtitle="Multi-factor SPY classifier (price, SMA cross, RSI, ADX) with asymmetric hysteresis. Drives the buy-size multiplier."
+      right={<Badge variant={variantFor(regime.kind)}>{regime.kind.toUpperCase()} · ×{regime.multiplier}</Badge>}
+    >
       <p className="text-sm text-ink/90">{regime.reasoning}</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-xs">
@@ -66,7 +67,7 @@ export function RegimeBanner({ regime }: { regime: Regime }) {
           )}
         </div>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

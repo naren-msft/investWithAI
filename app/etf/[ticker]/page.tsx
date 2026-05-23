@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 import { getEtfDetail } from "@/lib/etfDetail";
 import { TARGETS, FIDELITY_TRADE_URL } from "@/config/portfolio";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { PriceChart } from "@/components/PriceChart";
+import { CollapseExpandButtons } from "@/components/CollapseExpandButtons";
 import { fmtUsd, fmtNum, fmtPct } from "@/lib/format";
 import { ArrowLeft, ExternalLink, TrendingUp } from "lucide-react";
 
@@ -20,9 +22,14 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
-      <Link href="/etf" className="inline-flex items-center gap-1 text-sm subtle hover:text-ink">
-        <ArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
-      </Link>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Link href="/etf" className="inline-flex items-center gap-1 text-sm subtle hover:text-ink">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
+        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <CollapseExpandButtons />
+        </div>
+      </div>
 
       {/* Header */}
       <Card>
@@ -60,8 +67,7 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
       </Card>
 
       {/* Performance */}
-      <Card>
-        <CardHeader title="Performance" subtitle="Trailing total returns (annualized for periods > 1 year)" />
+      <CollapsibleCard storageKey={`card:etf-detail:${ticker}:performance`} title="Performance" subtitle="Trailing total returns (annualized for periods > 1 year)">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -93,12 +99,11 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
             </div>
           </>
         )}
-      </Card>
+      </CollapsibleCard>
 
       {/* Risk + Technicals */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader title="Risk (3-year)" subtitle="From Yahoo Finance fund performance module." />
+        <CollapsibleCard storageKey={`card:etf-detail:${ticker}:risk`} title="Risk (3-year)" subtitle="From Yahoo Finance fund performance module.">
           {detail.riskStats3y ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {detail.riskStats3y.stdDev != null  && <Stat label="Std Dev"   value={`${detail.riskStats3y.stdDev.toFixed(2)}%`} />}
@@ -109,10 +114,9 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
               {detail.morningstarRating != null   && <Stat label="M★ Rating" value={`${detail.morningstarRating} / 5`} />}
             </div>
           ) : <p className="subtle text-sm">No 3-year risk statistics available for this ETF.</p>}
-        </Card>
+        </CollapsibleCard>
 
-        <Card>
-          <CardHeader title="Technicals" subtitle="Live RSI / MACD / SMA — same engine that powers the buy signals." />
+        <CollapsibleCard storageKey={`card:etf-detail:${ticker}:technicals`} title="Technicals" subtitle="Live RSI / MACD / SMA — same engine that powers the buy signals.">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <Stat label="RSI-14"    value={Number.isFinite(detail.technicals.rsi14) ? detail.technicals.rsi14.toFixed(1) : "—"}
                   tone={detail.technicals.rsi14 >= 70 ? "loss" : detail.technicals.rsi14 <= 35 ? "gain" : undefined} />
@@ -123,7 +127,7 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
             <Stat label="SMA 200"   value={Number.isFinite(detail.technicals.sma200) ? `$${detail.technicals.sma200.toFixed(2)}` : "—"} />
             <Stat label="Price vs 50d"  value={detail.fiftyDayAverage      ? `${(((detail.price - detail.fiftyDayAverage) / detail.fiftyDayAverage) * 100).toFixed(2)}%` : "—"} />
           </div>
-        </Card>
+        </CollapsibleCard>
       </div>
 
       {/* Price + RSI chart (reuses existing component) */}
@@ -131,8 +135,7 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
 
       {/* Composition */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader title="Top 10 holdings" subtitle={`Top-10 represents ${(detail.topHoldings.reduce((s, h) => s + h.weight, 0) * 100).toFixed(1)}% of fund.`} />
+        <CollapsibleCard storageKey={`card:etf-detail:${ticker}:holdings`} title="Top 10 holdings" subtitle={`Top-10 represents ${(detail.topHoldings.reduce((s, h) => s + h.weight, 0) * 100).toFixed(1)}% of fund.`}>
           {detail.topHoldings.length === 0 ? <p className="subtle text-sm">Holdings data unavailable.</p> : (
             <div className="space-y-1.5">
               {detail.topHoldings.map((h) => (
@@ -146,10 +149,9 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
               ))}
             </div>
           )}
-        </Card>
+        </CollapsibleCard>
 
-        <Card>
-          <CardHeader title="Sector breakdown" />
+        <CollapsibleCard storageKey={`card:etf-detail:${ticker}:sectors`} title="Sector breakdown">
           {detail.sectorWeightings.length === 0 ? <p className="subtle text-sm">Sector data unavailable.</p> : (
             <div className="space-y-2">
               {detail.sectorWeightings.sort((a, b) => b.weight - a.weight).map((s) => (
@@ -165,24 +167,22 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
               ))}
             </div>
           )}
-        </Card>
+        </CollapsibleCard>
       </div>
 
       {/* Income */}
-      <Card>
-        <CardHeader title="Income" />
+      <CollapsibleCard storageKey={`card:etf-detail:${ticker}:income`} title="Income">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="Yield (TTM)"         value={detail.yield ? `${(detail.yield * 100).toFixed(2)}%` : "—"} />
           <Stat label="Annual $/share"      value={detail.trailingDividendRate ? `$${fmtNum(detail.trailingDividendRate, 2)}` : "—"} />
           <Stat label="Ex-dividend date"    value={detail.exDividendDate ?? "—"} />
           <Stat label="NAV"                 value={detail.nav ? `$${fmtNum(detail.nav, 2)}` : "—"} />
         </div>
-      </Card>
+      </CollapsibleCard>
 
       {/* News */}
       {detail.news.length > 0 && (
-        <Card>
-          <CardHeader title="Recent news" />
+        <CollapsibleCard storageKey={`card:etf-detail:${ticker}:news`} title="Recent news">
           <ul className="space-y-2">
             {detail.news.map((n, i) => (
               <li key={i} className="text-sm">
@@ -195,7 +195,7 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
               </li>
             ))}
           </ul>
-        </Card>
+        </CollapsibleCard>
       )}
 
       <footer className="mt-6 p-4 text-xs subtle border-t border-line">

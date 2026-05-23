@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -123,16 +123,17 @@ export function ExecutionLog(props: ExecutionLogProps) {
   }, [executions]);
 
   return (
-    <Card>
-      <CardHeader helpSection="execution-log"
-        title="Log your executions"
-        subtitle="Record what you actually bought. Holdings, drift, deployment plan, and tranche budget update instantly. Hard cap enforces the current phase's size — uncheck to override."
-        right={
-          <Badge variant="info">
-            {executions.length} execution{executions.length === 1 ? "" : "s"} · ${summary.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })} deployed
-          </Badge>
-        }
-      />
+    <CollapsibleCard
+      storageKey="card:execution-log"
+      helpSection="execution-log"
+      title="Log your executions"
+      subtitle="Record what you actually bought. Holdings, drift, deployment plan, and tranche budget update instantly. Hard cap enforces the current phase's size — uncheck to override."
+      right={
+        <Badge variant="info">
+          {executions.length} execution{executions.length === 1 ? "" : "s"} · ${summary.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })} deployed
+        </Badge>
+      }
+    >
 
       {/* Phase progress bar */}
       <div className="rounded-lg bg-surface-2 border border-line p-3 mb-4">
@@ -285,7 +286,7 @@ export function ExecutionLog(props: ExecutionLogProps) {
           </tbody>
         </table>
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

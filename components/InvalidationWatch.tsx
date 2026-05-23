@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
-import { ChevronDown, ChevronRight, Activity, AlertTriangle, Loader2 } from "lucide-react";
+import { Activity, AlertTriangle, Loader2 } from "lucide-react";
 
 type EwPhase =
   | "W1" | "W2" | "W3" | "W3-of-3" | "W4" | "W5"
@@ -72,7 +72,6 @@ export function InvalidationWatch({
 }) {
   const [data, setData] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -87,12 +86,17 @@ export function InvalidationWatch({
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader helpSection="invalidation-watch" title="Elliott Wave · Invalidation Watch" subtitle="Per-symbol wave count + the price level where the count is wrong." />
+      <CollapsibleCard
+        storageKey="card:invalidation-watch"
+        defaultCollapsed
+        helpSection="invalidation-watch"
+        title="Elliott Wave · Invalidation Watch"
+        subtitle="Per-symbol wave count + the price level where the count is wrong."
+      >
         <div className="h-[80px] grid place-items-center subtle text-sm">
           <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Loading wave data…</span>
         </div>
-      </Card>
+      </CollapsibleCard>
     );
   }
   if (!data) return null;
@@ -115,42 +119,32 @@ export function InvalidationWatch({
   const hasAlerts = breaches.length > 0 || nearMisses.length > 0;
 
   return (
-    <Card>
-      <CardHeader
-        helpSection="invalidation-watch"
-        title={
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="inline-flex items-center gap-1.5 text-left hover:opacity-80"
-            aria-expanded={!collapsed}
-            title={collapsed ? "Expand" : "Collapse"}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
-            <span>Elliott Wave · Invalidation Watch</span>
-          </button>
-        }
-        subtitle="Auto-detected wave counts via ZigZag pivots + Fibonacci scoring. Manual overrides in config/elliott-wave.json take precedence."
-        right={
-          <div className="flex items-center gap-2 flex-wrap">
-            {breaches.length > 0 && (
-              <Badge variant="danger">
-                <AlertTriangle className="w-3 h-3 mr-0.5" /> {breaches.length} breached
-              </Badge>
-            )}
-            {nearMisses.length > 0 && (
-              <Badge variant="warn">{nearMisses.length} near</Badge>
-            )}
-            <Badge variant="info">
-              <Activity className="w-3 h-3 mr-0.5" />
-              {coverage.counted} of {coverage.total} counted
+    <CollapsibleCard
+      storageKey="card:invalidation-watch"
+      defaultCollapsed
+      helpSection="invalidation-watch"
+      title="Elliott Wave · Invalidation Watch"
+      subtitle="Auto-detected wave counts via ZigZag pivots + Fibonacci scoring. Manual overrides in config/elliott-wave.json take precedence."
+      right={
+        <div className="flex items-center gap-2 flex-wrap">
+          {breaches.length > 0 && (
+            <Badge variant="danger">
+              <AlertTriangle className="w-3 h-3 mr-0.5" /> {breaches.length} breached
             </Badge>
-            {coverage.manualCount > 0 && (
-              <Badge variant="success">{coverage.manualCount} manual</Badge>
-            )}
-          </div>
-        }
-      />
+          )}
+          {nearMisses.length > 0 && (
+            <Badge variant="warn">{nearMisses.length} near</Badge>
+          )}
+          <Badge variant="info">
+            <Activity className="w-3 h-3 mr-0.5" />
+            {coverage.counted} of {coverage.total} counted
+          </Badge>
+          {coverage.manualCount > 0 && (
+            <Badge variant="success">{coverage.manualCount} manual</Badge>
+          )}
+        </div>
+      }
+    >
 
       {/* Always-visible alert strip when there's something to act on */}
       {hasAlerts && (
@@ -177,11 +171,9 @@ export function InvalidationWatch({
         </div>
       )}
 
-      {!collapsed && (
-        <>
-          {counted.length === 0 ? (
-            <div className="mt-3 text-sm subtle p-3 border border-dashed border-line rounded-md">
-              The auto-counter could not identify a clean wave structure on any symbol. This usually means the
+      {counted.length === 0 ? (
+        <div className="mt-3 text-sm subtle p-3 border border-dashed border-line rounded-md">
+          The auto-counter could not identify a clean wave structure on any symbol. This usually means the
               price history is too short or too choppy. You can populate counts manually in{" "}
               <code className="kbd">config/elliott-wave.json</code>.
             </div>
@@ -258,8 +250,6 @@ export function InvalidationWatch({
             Confidence reflects fit quality — treat low-confidence counts skeptically. Override any auto count
             by editing <code className="kbd">config/elliott-wave.json</code>; manual entries take precedence.
           </p>
-        </>
-      )}
-    </Card>
+    </CollapsibleCard>
   );
 }

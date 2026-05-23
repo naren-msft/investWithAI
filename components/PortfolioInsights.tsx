@@ -1,5 +1,5 @@
 import type { PipelineResult } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd, fmtPct } from "@/lib/format";
 
@@ -32,11 +32,12 @@ export function PortfolioInsights({ data, universeLabel = "ETFs in universe" }: 
   ];
 
   return (
-    <Card>
-      <CardHeader helpSection="portfolio-insights"
-        title="Portfolio insights"
-        subtitle="Headline numbers, regime tilts, and dry-powder accounting."
-      />
+    <CollapsibleCard
+      storageKey="card:portfolio-insights"
+      helpSection="portfolio-insights"
+      title="Portfolio insights"
+      subtitle="Headline numbers, regime tilts, and dry-powder accounting."
+    >
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {items.map((i) => (
           <div key={i.label} className="rounded-lg bg-surface-2 border border-line px-3 py-2">
@@ -55,7 +56,7 @@ export function PortfolioInsights({ data, universeLabel = "ETFs in universe" }: 
           ))}
         </div>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

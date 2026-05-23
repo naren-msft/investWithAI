@@ -1,5 +1,5 @@
 import type { BuyRecommendation, SkippedBuy } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { FIDELITY_TRADE_URL, ROBINHOOD_TRADE_URL, SCHWAB_TRADE_URL } from "@/config/portfolio";
 import { fmtUsd, fmtNum } from "@/lib/format";
@@ -32,12 +32,13 @@ export function BuyRecommendations({
   // — they're already explained by the locked-phase banner.
   const skippedToShow = phaseReady ? skipped.filter((s) => s.code !== "tranche-zero") : [];
   return (
-    <Card>
-      <CardHeader helpSection="recommendations"
-        title="Top buy recommendations"
-        subtitle={`Sized from the current tranche × effective weights · capped at each ${assetNoun}'s remaining drift.`}
-        right={<Badge variant="info">{recs.length} candidates</Badge>}
-      />
+    <CollapsibleCard
+      storageKey="card:buy-recommendations"
+      helpSection="recommendations"
+      title="Top buy recommendations"
+      subtitle={`Sized from the current tranche × effective weights · capped at each ${assetNoun}'s remaining drift.`}
+      right={<Badge variant="info">{recs.length} candidates</Badge>}
+    >
       {top.length === 0 ? (
         !phaseReady ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
@@ -141,7 +142,7 @@ export function BuyRecommendations({
           )}
         </>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

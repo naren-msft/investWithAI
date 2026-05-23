@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Home } from "lucide-react";
+import { CollapseExpandButtons } from "@/components/CollapseExpandButtons";
 
 // Shared breadcrumb header that appears at the top of each portfolio
 // dashboard. Provides a clear way back to the chooser landing and a label
@@ -7,10 +10,13 @@ import { Home } from "lucide-react";
 export function DashboardHeader({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-between gap-3 -mb-1">
-      <Link href="/" className="inline-flex items-center gap-1.5 text-xs subtle hover:text-ink transition-colors">
-        <Home className="w-3.5 h-3.5" />
-        Home
-      </Link>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs subtle hover:text-ink transition-colors">
+          <Home className="w-3.5 h-3.5" />
+          Home
+        </Link>
+        <CollapseExpandButtons />
+      </div>
       <div className="text-[11px] uppercase tracking-wider subtle">
         Dashboard · <span className="text-ink font-medium">{label}</span>
       </div>

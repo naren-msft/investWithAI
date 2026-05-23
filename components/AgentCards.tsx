@@ -1,5 +1,5 @@
 import type { AgentResult } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { Activity, Compass, LineChart, Wallet, CheckCircle2 } from "lucide-react";
 
@@ -54,11 +54,12 @@ const TONE_TEXT: Record<Tone, string> = {
 
 export function AgentCards({ agents }: { agents: AgentResult[] }) {
   return (
-    <Card>
-      <CardHeader helpSection="agent-cards"
-        title="Agent pipeline"
-        subtitle="Five deterministic agents cooperate; each card shows its reasoning trace."
-      />
+    <CollapsibleCard
+      storageKey="card:agent-cards"
+      helpSection="agent-cards"
+      title="Agent pipeline"
+      subtitle="Five deterministic agents cooperate; each card shows its reasoning trace."
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
         {agents.map((a, i) => {
           const tone: Tone = TONES[a.agent] ?? "blue";
@@ -77,6 +78,6 @@ export function AgentCards({ agents }: { agents: AgentResult[] }) {
           );
         })}
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }

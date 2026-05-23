@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { BuyRecommendation, DriftRow } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { fmtPct, fmtUsd } from "@/lib/format";
 import { ArrowDownRight, ArrowUpRight, Minus, AlertCircle } from "lucide-react";
@@ -17,11 +17,12 @@ export function AllocationTable({
   const sorted = [...rows].sort((a, b) => b.targetPct - a.targetPct);
   const recByTicker = new Map(recommendations.map((r) => [r.ticker, r]));
   return (
-    <Card>
-      <CardHeader helpSection="allocation-table"
-        title="Allocation table"
-        subtitle="Today = live intraday % change.  Drift = target $ − current $.  Buy this tranche = dollars to deploy now.  Δ after buys = drift remaining.  ⚠️ = drift > 3% (rebalance candidate).  Click ticker for full research page."
-      />
+    <CollapsibleCard
+      storageKey="card:allocation-table"
+      helpSection="allocation-table"
+      title="Allocation table"
+      subtitle="Today = live intraday % change.  Drift = target $ − current $.  Buy this tranche = dollars to deploy now.  Δ after buys = drift remaining.  ⚠️ = drift > 3% (rebalance candidate).  Click ticker for full research page."
+    >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -93,7 +94,7 @@ export function AllocationTable({
           </tbody>
         </table>
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

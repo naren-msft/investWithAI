@@ -1,5 +1,5 @@
 import type { PipelineResult, SkippedBuy, SkippedBuyCode, DriftRow, SignalRow } from "@/types";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd } from "@/lib/format";
 import { ArrowRight } from "lucide-react";
@@ -65,17 +65,17 @@ export function NextBestAllocation({ data }: { data: PipelineResult }) {
   const totalPotential = queue.reduce((s, q) => s + q.potentialUsd, 0);
 
   return (
-    <Card>
-      <CardHeader
-        helpSection="next-best-allocation"
-        title="Next best allocation"
-        subtitle="If the gate flipped, where would the next dollar go? Ranked by unfilled drift."
-        right={
-          <Badge variant="info">
-            {fmtUsd(totalPotential)} in queue
-          </Badge>
-        }
-      />
+    <CollapsibleCard
+      storageKey="card:next-best-allocation"
+      helpSection="next-best-allocation"
+      title="Next best allocation"
+      subtitle="If the gate flipped, where would the next dollar go? Ranked by unfilled drift."
+      right={
+        <Badge variant="info">
+          {fmtUsd(totalPotential)} in queue
+        </Badge>
+      }
+    >
       <ol className="space-y-2">
         {queue.map((q, i) => (
           <li
@@ -118,6 +118,6 @@ export function NextBestAllocation({ data }: { data: PipelineResult }) {
       <div className="mt-3 text-[11px] subtle">
         Ranking uses unfilled drift dollars — the size of the buy that would land if the condition cleared. See <span className="font-medium">Under-deployment explained</span> for the full skipped list.
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }

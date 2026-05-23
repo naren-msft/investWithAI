@@ -4,8 +4,10 @@ import { getStockDetail } from "@/lib/stockDetail";
 import { STOCK_TARGETS } from "@/config/stocks";
 import { FIDELITY_TRADE_URL } from "@/config/portfolio";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { LinkButton } from "@/components/ui/Button";
 import { PriceChart } from "@/components/PriceChart";
+import { CollapseExpandButtons } from "@/components/CollapseExpandButtons";
 import { fmtNum } from "@/lib/format";
 import { ArrowLeft, ExternalLink, TrendingUp } from "lucide-react";
 
@@ -20,9 +22,14 @@ export default async function StockPage({ params }: { params: { ticker: string }
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
-      <Link href="/stocks" className="inline-flex items-center gap-1 text-sm subtle hover:text-ink">
-        <ArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
-      </Link>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Link href="/stocks" className="inline-flex items-center gap-1 text-sm subtle hover:text-ink">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
+        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <CollapseExpandButtons />
+        </div>
+      </div>
 
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -72,8 +79,7 @@ export default async function StockPage({ params }: { params: { ticker: string }
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader title="Company profile" subtitle={[detail.country, detail.industry].filter(Boolean).join(" · ")} />
+        <CollapsibleCard storageKey={`card:stock-detail:${ticker}:profile`} title="Company profile" subtitle={[detail.country, detail.industry].filter(Boolean).join(" · ")}>
           {detail.longBusinessSummary ? (
             <p className="text-sm leading-relaxed">{detail.longBusinessSummary}</p>
           ) : <p className="subtle text-sm">No profile available.</p>}
@@ -85,10 +91,9 @@ export default async function StockPage({ params }: { params: { ticker: string }
               </a>
             )}
           </div>
-        </Card>
+        </CollapsibleCard>
 
-        <Card>
-          <CardHeader title="Technicals" subtitle="Live RSI / MACD / SMA — same engine that powers the buy signals." />
+        <CollapsibleCard storageKey={`card:stock-detail:${ticker}:technicals`} title="Technicals" subtitle="Live RSI / MACD / SMA — same engine that powers the buy signals.">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <Stat label="RSI-14"    value={Number.isFinite(detail.technicals.rsi14) ? detail.technicals.rsi14.toFixed(1) : "—"}
                   tone={detail.technicals.rsi14 >= 70 ? "loss" : detail.technicals.rsi14 <= 35 ? "gain" : undefined} />
@@ -99,26 +104,24 @@ export default async function StockPage({ params }: { params: { ticker: string }
             <Stat label="SMA 200"   value={Number.isFinite(detail.technicals.sma200) ? `$${detail.technicals.sma200.toFixed(2)}` : "—"} />
             <Stat label="Price vs 50d"  value={detail.fiftyDayAverage      ? `${(((detail.price - detail.fiftyDayAverage) / detail.fiftyDayAverage) * 100).toFixed(2)}%` : "—"} />
           </div>
-        </Card>
+        </CollapsibleCard>
       </div>
 
       <PriceChart tickers={[ticker]} />
 
       {(detail.dividendYield || detail.dividendRate) && (
-        <Card>
-          <CardHeader title="Dividends" />
+        <CollapsibleCard storageKey={`card:stock-detail:${ticker}:dividends`} title="Dividends">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Stat label="Yield"            value={detail.dividendYield ? `${(detail.dividendYield * 100).toFixed(2)}%` : "—"} />
             <Stat label="Annual $/share"   value={detail.dividendRate  ? `$${fmtNum(detail.dividendRate, 2)}` : "—"} />
             <Stat label="Payout ratio"     value={detail.payoutRatio   ? `${(detail.payoutRatio * 100).toFixed(1)}%` : "—"} />
             <Stat label="Ex-dividend date" value={detail.exDividendDate ?? "—"} />
           </div>
-        </Card>
+        </CollapsibleCard>
       )}
 
       {detail.news.length > 0 && (
-        <Card>
-          <CardHeader title="Recent news" />
+        <CollapsibleCard storageKey={`card:stock-detail:${ticker}:news`} title="Recent news">
           <ul className="space-y-2">
             {detail.news.map((n, i) => (
               <li key={i} className="text-sm">
@@ -131,7 +134,7 @@ export default async function StockPage({ params }: { params: { ticker: string }
               </li>
             ))}
           </ul>
-        </Card>
+        </CollapsibleCard>
       )}
 
       <footer className="mt-6 p-4 text-xs subtle border-t border-line">

@@ -62,3 +62,51 @@ html, body {
   color: rgb(var(--ink)) !important;
 }
 .recharts-cartesian-axis-tick-value { fill: rgb(var(--ink-muted)) !important; }
+
+/* Animated home-page background blobs */
+@keyframes blob-float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(40px, -30px) scale(1.08); }
+  66%      { transform: translate(-25px, 25px) scale(0.95); }
+}
+@keyframes blob-float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(-35px, 25px) scale(1.05); }
+  66%      { transform: translate(30px, -20px) scale(0.92); }
+}
+@keyframes blob-float-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(20px, 30px) scale(1.1); }
+}
+.home-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.home-bg::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgb(var(--ink) / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--ink) / 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  opacity: 0.45;
+}
+.home-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.dark .home-blob { opacity: 0.40; }
+.home-blob-a { top: -10%; left: -10%; width: 520px; height: 520px;
+  background: radial-gradient(circle, #10b981 0%, transparent 65%);
+  animation: blob-float-a 18s ease-in-out infinite; }
+.home-blob-b { top: 20%; right: -12%; width: 560px; height: 560px;
+  background: radial-gradient(circle, #6366f1 0%, transparent 65%);
+  animation: blob-float-b 22s ease-in-out infinite; }
+.home-blob-c { bottom: -15%; left: 25%; width: 600px; height: 600px;
+  background: radial-gradient(circle, #d946ef 0%, transparent 65%);
+  animation: blob-float-c 26s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .home-blob-a, .home-blob-b, .home-blob-c { animation: none; }
+}

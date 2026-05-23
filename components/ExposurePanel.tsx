@@ -1,6 +1,6 @@
 import type { DriftRow, PipelineResult } from "@/types";
 import { ROLE_TO_SLEEVE, SLEEVE_LABEL, type SleeveGroup } from "@/config/portfolio";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { fmtUsd } from "@/lib/format";
@@ -68,13 +68,13 @@ export function ExposurePanel({ data }: { data: PipelineResult }) {
   const bufferPct = data.capital > 0 ? data.cashBuffer / data.capital : 0;
 
   return (
-    <Card>
-      <CardHeader
-        helpSection="exposure"
-        title="Exposure"
-        subtitle="How exposed am I right now — equity sleeves, international, fixed income, alternatives, and cash."
-        right={<Badge variant="info">{sleeves.length} sleeves</Badge>}
-      />
+    <CollapsibleCard
+      storageKey="card:exposure"
+      helpSection="exposure"
+      title="Exposure"
+      subtitle="How exposed am I right now — equity sleeves, international, fixed income, alternatives, and cash."
+      right={<Badge variant="info">{sleeves.length} sleeves</Badge>}
+    >
 
       {/* Headline tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -111,7 +111,7 @@ export function ExposurePanel({ data }: { data: PipelineResult }) {
 
       {/* Sector mix — the way most investors actually think about exposure */}
       <SectorMixSection sectors={data.sectorExposures} />
-    </Card>
+    </CollapsibleCard>
   );
 }
 

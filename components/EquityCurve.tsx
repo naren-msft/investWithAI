@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd } from "@/lib/format";
 import { LineChart as LineIcon, TrendingUp } from "lucide-react";
@@ -69,24 +69,25 @@ export function EquityCurve({ refreshTick, apiPrefix = "/api" }: { refreshTick?:
   }, [points]);
 
   return (
-    <Card>
-      <CardHeader helpSection="equity-curve"
-        title="Portfolio growth vs SPY"
-        subtitle="Green = your portfolio. Orange dashed = if you'd bought SPY with the same $ on the same dates. Blue dashed = cost basis."
-        right={
-          summary ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="info">{summary.days} day{summary.days === 1 ? "" : "s"}</Badge>
-              <Badge variant={summary.gain >= 0 ? "success" : "danger"}>
-                You {summary.gain >= 0 ? "+" : ""}{fmtUsd(summary.gain)} ({(summary.gainPct * 100).toFixed(2)}%)
-              </Badge>
-              <Badge variant={summary.gain >= summary.spyGain ? "success" : "warn"}>
-                SPY {summary.spyGain >= 0 ? "+" : ""}{fmtUsd(summary.spyGain)} ({(summary.spyGainPct * 100).toFixed(2)}%)
-              </Badge>
-            </div>
-          ) : null
-        }
-      />
+    <CollapsibleCard
+      storageKey="card:equity-curve"
+      helpSection="equity-curve"
+      title="Portfolio growth vs SPY"
+      subtitle="Green = your portfolio. Orange dashed = if you'd bought SPY with the same $ on the same dates. Blue dashed = cost basis."
+      right={
+        summary ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="info">{summary.days} day{summary.days === 1 ? "" : "s"}</Badge>
+            <Badge variant={summary.gain >= 0 ? "success" : "danger"}>
+              You {summary.gain >= 0 ? "+" : ""}{fmtUsd(summary.gain)} ({(summary.gainPct * 100).toFixed(2)}%)
+            </Badge>
+            <Badge variant={summary.gain >= summary.spyGain ? "success" : "warn"}>
+              SPY {summary.spyGain >= 0 ? "+" : ""}{fmtUsd(summary.spyGain)} ({(summary.spyGainPct * 100).toFixed(2)}%)
+            </Badge>
+          </div>
+        ) : null
+      }
+    >
 
       {err && <div className="text-sm text-red-700 dark:text-red-300 mb-2">{err}</div>}
       {loading ? (
@@ -163,7 +164,7 @@ export function EquityCurve({ refreshTick, apiPrefix = "/api" }: { refreshTick?:
           )}
         </>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 
