@@ -8,7 +8,7 @@ import { CapitalEditor } from "@/components/CapitalEditor";
 import { HelpCircle } from "lucide-react";
 import { fmtUsd } from "@/lib/format";
 
-export function HeroSummary({ data, title = "ETF Portfolio · Fidelity", subtitle }: { data: PipelineResult; title?: string; subtitle?: string }) {
+export function HeroSummary({ data, title = "ETF Portfolio · Fidelity", subtitle, scope = "etf" }: { data: PipelineResult; title?: string; subtitle?: string; scope?: string }) {
   const deployable = Math.max(0, data.capital - data.cashBuffer);
   const availableToDeploy = Math.max(0, data.cashUsd - data.cashBuffer);
   const deployedPct = deployable > 0 ? Math.min(100, (data.deployedUsd / deployable) * 100) : 0;
@@ -36,7 +36,7 @@ export function HeroSummary({ data, title = "ETF Portfolio · Fidelity", subtitl
           <Badge variant={data.dayPnlUsd >= 0 ? "success" : "danger"}>
             Day P/L {fmtUsd(data.dayPnlUsd, true)}
           </Badge>
-          <CapitalEditor capital={data.capital} cashBuffer={data.cashBuffer} />
+          <CapitalEditor capital={data.capital} cashBuffer={data.cashBuffer} scope={scope} />
           <AutoRefresh />
           <Link
             href="/help"

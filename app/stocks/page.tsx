@@ -72,7 +72,7 @@ export default async function StocksPage({
       <DashboardHeader label="Stock Portfolio" />
       <MarketAwareTicker recs={data.recommendations} asOf={data.asOf} />
       <ChangeBanner refreshTick={refreshTick} apiPrefix={API_PREFIX} />
-      <HeroSummary data={data} title="Stocks Portfolio · Fidelity" subtitle={`Multi-agent allocation across ${data.drift.length} stocks, tier-aware signals, staged deployment.`} />
+      <HeroSummary data={data} title="Stocks Portfolio · Fidelity" subtitle={`Multi-agent allocation across ${data.drift.length} stocks, tier-aware signals, staged deployment.`} scope="stocks" />
       <RegimeBanner regime={data.regime} />
       <PortfolioInsights data={data} />
       <UnderDeploymentSummary data={data} />

@@ -14,11 +14,16 @@ const LS_BUFFER = "investai.cashBuffer";
  * `?capital=…&buffer=…` so the server pipeline re-runs with the override
  * and every derived card (deployment plan, tranches, sizing, %s) updates.
  *
+ * `scope` namespaces the localStorage keys so independent portfolios
+ * (e.g. /etf vs /stocks) don't clobber each other's saved sizing.
+ *
  * Reads the current URL via `window.location` (not `useSearchParams`) to
  * sidestep Next 14's Suspense requirement.
  */
-export function CapitalEditor({ capital, cashBuffer }: { capital: number; cashBuffer: number }) {
+export function CapitalEditor({ capital, cashBuffer, scope = "etf" }: { capital: number; cashBuffer: number; scope?: string }) {
   const router = useRouter();
+  const lsCapKey = `${LS_CAPITAL}.${scope}`;
+  const lsBufKey = `${LS_BUFFER}.${scope}`;
 
   const [open, setOpen] = useState(false);
   const [capitalInput, setCapitalInput] = useState(String(capital));
@@ -35,8 +40,8 @@ export function CapitalEditor({ capital, cashBuffer }: { capital: number; cashBu
       const urlBuf = url.searchParams.get("buffer");
       setHasOverride(!!urlCap || !!urlBuf);
       if (urlCap || urlBuf) return;
-      const lsCap = Number(localStorage.getItem(LS_CAPITAL) ?? "");
-      const lsBuf = Number(localStorage.getItem(LS_BUFFER) ?? "");
+      const lsCap = Number(localStorage.getItem(lsCapKey) ?? "");
+      const lsBuf = Number(localStorage.getItem(lsBufKey) ?? "");
       if (Number.isFinite(lsCap) && lsCap > 0) {
         const params = new URLSearchParams();
         params.set("capital", String(Math.round(lsCap)));
@@ -68,8 +73,8 @@ export function CapitalEditor({ capital, cashBuffer }: { capital: number; cashBu
       return;
     }
     try {
-      localStorage.setItem(LS_CAPITAL, String(c));
-      localStorage.setItem(LS_BUFFER, String(b));
+      localStorage.setItem(lsCapKey, String(c));
+      localStorage.setItem(lsBufKey, String(b));
     } catch {}
     const params = new URLSearchParams();
     params.set("capital", String(c));
@@ -90,8 +95,8 @@ export function CapitalEditor({ capital, cashBuffer }: { capital: number; cashBu
 
   function reset() {
     try {
-      localStorage.removeItem(LS_CAPITAL);
-      localStorage.removeItem(LS_BUFFER);
+      localStorage.removeItem(lsCapKey);
+      localStorage.removeItem(lsBufKey);
     } catch {}
     setError(null);
     setOpen(false);
