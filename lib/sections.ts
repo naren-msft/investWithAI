@@ -7,6 +7,13 @@
 
 export interface HelpFAQ { q: string; a: string }
 
+export interface HelpReferenceTable {
+  title: string;
+  columns: string[];                    // table header labels
+  rows: Array<Array<string>>;           // each inner array = one row, cells aligned to columns
+  footnote?: string;
+}
+
 export interface HelpSection {
   id: string;
   title: string;
@@ -14,6 +21,7 @@ export interface HelpSection {
   whatItIs: string;           // 1-2 sentences
   whyItMatters: string;       // 2-4 sentences
   howToRead: string[];        // bullet/ordered list items
+  referenceTables?: HelpReferenceTable[];  // structured reference data (phase legends, mappings, etc.)
   faqs?: HelpFAQ[];
   related?: string[];         // ids of related sections
 }
@@ -527,6 +535,47 @@ export const SECTIONS: HelpSection[] = [
       "Distance column: signed % from current price to invalidation. Positive = price safely above invalidation (bullish counts); negative on a bullish phase = breached.",
       "Confidence: 0–1 score from the Fibonacci fit. < 0.40 = weak structural fit, treat skeptically. > 0.60 = good fit (rare).",
       "Source: 'auto-zigzag-v1' = computed from price history; anything else = manual entry from config/elliott-wave.json with the date you updated it.",
+    ],
+    referenceTables: [
+      {
+        title: "Phase legend",
+        columns: ["Phase", "Description"],
+        rows: [
+          ["W1",      "Initial impulse up — fresh trend, but unconfirmed"],
+          ["W2",      "Pullback after W1 — classic buy zone"],
+          ["W3",      "Strongest motive wave — trend extension"],
+          ["W3-of-3", "Acceleration phase — highest-conviction trend leg"],
+          ["W4",      "Consolidation after W3 — usually shallow, sideways"],
+          ["W5",      "Final push — top forming, often divergent"],
+          ["A",       "First correction down — trend may be ending"],
+          ["B",       "Counter-trend rally inside correction — don't chase"],
+          ["C",       "Capitulation low — potential bottom but knife-catch"],
+          ["UNKNOWN", "No clear wave structure — auto-counter abstained"],
+        ],
+      },
+      {
+        title: "Phase → Signal mapping",
+        columns: ["Phase", "EW Signal", "Rationale"],
+        rows: [
+          ["W3-of-3",     "STRONG BUY", "Acceleration phase — highest-conviction wave in EW"],
+          ["W2, W3",      "BUY",        "Corrective low / strongest trend leg"],
+          ["W1, W4, C",   "HOLD",       "Unconfirmed early trend / consolidation / potential bottom (knife-catch)"],
+          ["W5",          "CAUTION",    "Top forming — start lightening exposure"],
+          ["A, B",        "AVOID",      "Corrective phases — don't open new longs"],
+          ["UNKNOWN",     "—",          "No clear count → no EW signal"],
+        ],
+        footnote: "These are EW-only signals, independent of the dashboard's primary BUY/HOLD/AVOID recommendations (which use RSI, MACD, drift, sleeve caps, and tier thresholds). Use as a cross-check, not a replacement.",
+      },
+      {
+        title: "ZigZag thresholds by tier",
+        columns: ["Tier", "Threshold", "Rationale"],
+        rows: [
+          ["Core",        "7%",  "Lower-volatility large caps (NVDA, ASML, TSM…)"],
+          ["Growth",      "9%",  "Mid-volatility AI cloud / software (CRWV, RBRK…)"],
+          ["Speculative", "12%", "High-volatility microcaps (IONQ, QBTS, ARQQ…)"],
+        ],
+        footnote: "A pivot is emitted when price retraces from the running extreme by ≥ threshold. Too low = noise pivots; too high = misses real structure.",
+      },
     ],
     faqs: [
       {

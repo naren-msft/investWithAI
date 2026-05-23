@@ -4,6 +4,7 @@ import { SECTIONS } from "@/lib/sections";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { HelpToc } from "@/components/help/HelpToc";
+import { BackToTop } from "@/components/BackToTop";
 
 export const metadata = {
   title: "Help · InvestWithAI",
@@ -49,6 +50,39 @@ export default function HelpPage() {
                     </ul>
                   </div>
 
+                  {s.referenceTables && s.referenceTables.length > 0 && (
+                    <div className="space-y-4">
+                      {s.referenceTables.map((t, ti) => (
+                        <div key={ti}>
+                          <div className="font-semibold mb-1.5">{t.title}</div>
+                          <div className="overflow-x-auto border border-line rounded-md">
+                            <table className="w-full text-sm">
+                              <thead className="bg-line/40">
+                                <tr className="text-left subtle text-[11px] uppercase tracking-wider">
+                                  {t.columns.map((c, ci) => (
+                                    <th key={ci} className="py-1.5 px-3">{c}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {t.rows.map((row, ri) => (
+                                  <tr key={ri} className="border-t border-line">
+                                    {row.map((cell, ci) => (
+                                      <td key={ci} className={`py-1.5 px-3 ${ci === 0 ? "font-mono font-medium" : ""}`}>{cell}</td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {t.footnote && (
+                            <p className="text-[11px] subtle mt-1.5 leading-relaxed">{t.footnote}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {s.faqs && s.faqs.length > 0 && (
                     <div>
                       <div className="font-semibold mb-1.5">Common questions</div>
@@ -88,6 +122,8 @@ export default function HelpPage() {
         <strong className="text-ink/80">Educational use only — not investment advice.</strong>{" "}
         Live data from Yahoo Finance. ETFs involve risk including possible loss of principal.
       </footer>
+
+      <BackToTop />
     </main>
   );
 }
