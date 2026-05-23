@@ -2,6 +2,7 @@ import { LineChart, TrendingUp } from "lucide-react";
 import { MarketPulse } from "@/components/home/MarketPulse";
 import { CombinedHero } from "@/components/home/CombinedHero";
 import { PortfolioCard } from "@/components/home/PortfolioCard";
+import { ScreenerCard } from "@/components/home/ScreenerCard";
 import { TickerSearch } from "@/components/home/TickerSearch";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HowItWorks } from "@/components/home/HowItWorks";
@@ -26,7 +27,7 @@ export default function Home() {
 
       <CombinedHero />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <PortfolioCard
           href="/etf"
           icon={<LineChart className="w-6 h-6" />}
@@ -53,6 +54,7 @@ export default function Home() {
           ctaLabel="Open Stock dashboard"
           apiPrefix="/api/stocks"
         />
+        <ScreenerCard />
       </div>
 
       <StockNews />
