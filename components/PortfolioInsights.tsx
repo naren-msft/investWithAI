@@ -24,7 +24,9 @@ export function PortfolioInsights({ data }: { data: PipelineResult }) {
     { label: "Total overweight",  value: fmtUsd(totalOverweight) },
     { label: "Signals BUY / AVOID", value: `${buyCount} / ${avoidCount}` },
     { label: "Dry powder (after buffer)", value: fmtUsd(Math.max(0, data.cashUsd - data.cashBuffer - recsTotal)) },
-    { label: "Tranche utilization", value: `${(utilization * 100).toFixed(0)}% (${fmtUsd(recsTotal)} of ${fmtUsd(data.trancheBudget)})` },
+    { label: "Tranche utilization", value: data.trancheBudget > 0
+        ? `${(utilization * 100).toFixed(0)}% (${fmtUsd(recsTotal)} of ${fmtUsd(data.trancheBudget)})`
+        : `Phase ${data.currentTranche.phase} locked` },
     { label: "Blended expense ratio", value: `${(blendedExpense * 100).toFixed(2)}% / yr` },
     { label: "ETFs in universe", value: String(data.drift.length) },
   ];

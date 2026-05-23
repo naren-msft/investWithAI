@@ -1,8 +1,14 @@
 import type { PortfolioConfig } from "@/types";
 
-export const CAPITAL = 300_000;
-export const CASH_BUFFER = 60_000;        // reserved (never deployed)
-export const DEPLOYABLE = CAPITAL - CASH_BUFFER; // 240_000
+// NOTE: These figures are an EXAMPLE portfolio sizing for the demo.
+// Override at runtime via the in-app editor (Hero card) or via the CAPITAL /
+// CASH_BUFFER environment variables.
+export const DEFAULT_CAPITAL = Number(process.env.CAPITAL ?? 100_000);
+export const DEFAULT_CASH_BUFFER = Number(process.env.CASH_BUFFER ?? 20_000);
+
+export const CAPITAL = DEFAULT_CAPITAL;
+export const CASH_BUFFER = DEFAULT_CASH_BUFFER; // reserved (never deployed)
+export const DEPLOYABLE = CAPITAL - CASH_BUFFER;
 
 // LEAN 8-ETF portfolio (researched 2026-05-22, redesigned to reduce mega-cap
 // overlap while preserving theme tilts that have historically beaten SPY).
@@ -37,17 +43,59 @@ export const TARGETS = [
   { ticker: "FENY", name: "Fidelity MSCI Energy",               weight: 0.06, expense: 0.00084, role: "Energy / inflation hedge" },
 ] as const;
 
-// Staged deployment: $140K initial + 3 phased tranches of ~$33K of the $240K deployable
-const INITIAL = 140_000;
-const REMAINING = DEPLOYABLE - INITIAL;
-const phaseSize = Math.round(REMAINING / 3);
+// Tranche schedule as fractions of the deployable capital + buffer release.
+// Phase 1–4 split the deployable sleeve 50/16.67/16.67/16.66; Phase 5 is the
+// cash-buffer release. Using fractions lets the schedule auto-scale to any
+// configured CAPITAL / CASH_BUFFER.
+const TRANCHE_FRACTIONS_OF_DEPLOYABLE = [0.50, 1 / 6, 1 / 6, 1 / 6] as const;
 
-export const TRANCHES = [
-  { phase: 1, size: INITIAL,                                gate: "Deploy on day 1 (initial tranche).",                              status: "next"    as const },
-  { phase: 2, size: phaseSize,                              gate: "After 30 days OR SPY pullback ≥ 5%.",                              status: "pending" as const },
-  { phase: 3, size: phaseSize,                              gate: "After 60 days OR SPY pullback ≥ 8%.",                              status: "pending" as const },
-  { phase: 4, size: REMAINING - phaseSize * 2,              gate: "After 90 days OR confirmed rally / correction buy.",              status: "pending" as const },
-];
+export function buildTranches(capital: number, cashBuffer: number) {
+  const deployable = Math.max(0, capital - cashBuffer);
+  const p1 = Math.round(deployable * TRANCHE_FRACTIONS_OF_DEPLOYABLE[0]);
+  const p2 = Math.round(deployable * TRANCHE_FRACTIONS_OF_DEPLOYABLE[1]);
+  const p3 = Math.round(deployable * TRANCHE_FRACTIONS_OF_DEPLOYABLE[2]);
+  // P4 absorbs the rounding remainder so P1..P4 = deployable exactly.
+  const p4 = Math.max(0, deployable - (p1 + p2 + p3));
+  return [
+    {
+      phase: 1,
+      size: p1,
+      gate: "Start immediately.",
+      triggers: { daysFromStart: 0 },
+      status: "ready" as const,
+    },
+    {
+      phase: 2,
+      size: p2,
+      gate: "SPY −5% from P1 peak OR 30 days elapsed.",
+      triggers: { daysFromStart: 30, spyDrawdownPct: 0.05 },
+      status: "locked" as const,
+    },
+    {
+      phase: 3,
+      size: p3,
+      gate: "SPY −8% from P1 peak OR 60 days elapsed.",
+      triggers: { daysFromStart: 60, spyDrawdownPct: 0.08 },
+      status: "locked" as const,
+    },
+    {
+      phase: 4,
+      size: p4,
+      gate: "SPY −12% correction from P1 peak (no time fallback).",
+      triggers: { spyDrawdownPct: 0.12 },
+      status: "locked" as const,
+    },
+    {
+      phase: 5,
+      size: cashBuffer,
+      gate: "Trend confirmation (≥5% pullback then back to rally) OR 90 days elapsed. Represents the cash-buffer release.",
+      triggers: { daysFromStart: 90, trendConfirmation: true },
+      status: "locked" as const,
+    },
+  ];
+}
+
+export const TRANCHES = buildTranches(CAPITAL, CASH_BUFFER);
 
 export const PORTFOLIO: PortfolioConfig = {
   capital: CAPITAL,
@@ -57,6 +105,38 @@ export const PORTFOLIO: PortfolioConfig = {
   holdings: [],
   cash: CAPITAL,
 };
+
+// Sleeve grouping used by the Exposure panel and (future) sector-cap rules.
+export type SleeveGroup =
+  | "equity-growth"
+  | "equity-defensive"
+  | "international"
+  | "fixed-income"
+  | "alternatives";
+
+export const SLEEVE_LABEL: Record<SleeveGroup, string> = {
+  "equity-growth": "Equity Growth",
+  "equity-defensive": "Equity Defensive",
+  "international": "International",
+  "fixed-income": "Fixed Income",
+  "alternatives": "Alternatives",
+};
+
+// Each role string from TARGETS maps to exactly one sleeve.
+export const ROLE_TO_SLEEVE: Record<string, SleeveGroup> = {
+  "US large-cap core":            "equity-growth",
+  "AI / mega-cap tech":           "equity-growth",
+  "Semiconductors (AI infra)":    "equity-growth",
+  "Aerospace & defense":          "equity-growth",
+  "Healthcare":                   "equity-defensive",
+  "International developed":      "international",
+  "Bond ballast / income":        "fixed-income",
+  "Energy / inflation hedge":     "alternatives",
+};
+
+export function sleeveFor(role: string): SleeveGroup {
+  return ROLE_TO_SLEEVE[role] ?? "alternatives";
+}
 
 export const FIDELITY_TRADE_URL = (symbol: string) =>
   `https://digital.fidelity.com/ftgw/digital/trade-equity?ACCOUNT=&SYMBOL=${encodeURIComponent(symbol)}`;

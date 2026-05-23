@@ -91,3 +91,69 @@ export function macd(
   const lastSignal = signalArr[signalArr.length - 1];
   return { macd: lastMacd, signal: lastSignal, hist: lastMacd - lastSignal };
 }
+
+// Wilder smoothing (RMA): SMA seed for first `period` values then
+// exponential update with α = 1/period.
+function rmaSeries(values: number[], period: number): number[] {
+  if (values.length < period) return new Array(values.length).fill(NaN);
+  const out: number[] = new Array(period - 1).fill(NaN);
+  let s = 0;
+  for (let i = 0; i < period; i++) s += values[i];
+  s /= period;
+  out.push(s);
+  for (let i = period; i < values.length; i++) {
+    s = (s * (period - 1) + values[i]) / period;
+    out.push(s);
+  }
+  return out;
+}
+
+// Wilder's Average Directional Index — measures trend STRENGTH (not direction).
+// Standard thresholds: ADX > 20 = trending, > 25 = strong trend, < 20 = choppy.
+export function adx(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14,
+): number {
+  const n = closes.length;
+  if (n < period * 2 + 1) return NaN;
+
+  const plusDM: number[] = [];
+  const minusDM: number[] = [];
+  const tr: number[] = [];
+  for (let i = 1; i < n; i++) {
+    const upMove = highs[i] - highs[i - 1];
+    const downMove = lows[i - 1] - lows[i];
+    plusDM.push(upMove > downMove && upMove > 0 ? upMove : 0);
+    minusDM.push(downMove > upMove && downMove > 0 ? downMove : 0);
+    tr.push(
+      Math.max(
+        highs[i] - lows[i],
+        Math.abs(highs[i] - closes[i - 1]),
+        Math.abs(lows[i] - closes[i - 1]),
+      ),
+    );
+  }
+
+  const smoothTR = rmaSeries(tr, period);
+  const smoothPDM = rmaSeries(plusDM, period);
+  const smoothMDM = rmaSeries(minusDM, period);
+
+  const dx: number[] = [];
+  for (let i = 0; i < smoothTR.length; i++) {
+    if (!Number.isFinite(smoothTR[i]) || smoothTR[i] === 0) {
+      dx.push(NaN);
+      continue;
+    }
+    const pdi = (100 * smoothPDM[i]) / smoothTR[i];
+    const mdi = (100 * smoothMDM[i]) / smoothTR[i];
+    const denom = pdi + mdi;
+    dx.push(denom > 0 ? (100 * Math.abs(pdi - mdi)) / denom : 0);
+  }
+  const valid = dx.filter((v) => Number.isFinite(v));
+  if (valid.length < period) return NaN;
+  const adxSeries = rmaSeries(valid, period);
+  const last = adxSeries[adxSeries.length - 1];
+  return Number.isFinite(last) ? last : NaN;
+}

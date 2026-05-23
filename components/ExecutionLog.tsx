@@ -16,6 +16,8 @@ export interface ExecutionLogProps {
   phaseRemaining: number;
   capital: number;
   totalDeployed: number;
+  phaseReady: boolean;
+  lockedReason?: string;
 }
 
 interface Execution {
@@ -67,6 +69,7 @@ export function ExecutionLog(props: ExecutionLogProps) {
 
   const projectedCost = (Number(shares) || 0) * (Number(price) || 0);
   const willExceed = projectedCost > props.phaseRemaining + 0.01;
+  const phaseLocked = !props.phaseReady;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -133,7 +136,9 @@ export function ExecutionLog(props: ExecutionLogProps) {
       <div className="rounded-lg bg-surface-2 border border-line p-3 mb-4">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <Badge variant="success">Phase {props.currentPhase}</Badge>
+            <Badge variant={phaseLocked ? "warn" : "success"}>
+              {phaseLocked ? `Phase ${props.currentPhase} — locked` : `Phase ${props.currentPhase}`}
+            </Badge>
             <span className="subtle">phase size</span>
             <span className="font-mono">${props.phaseSize.toLocaleString()}</span>
           </div>
@@ -148,6 +153,12 @@ export function ExecutionLog(props: ExecutionLogProps) {
           </div>
         </div>
         <div className="mt-2"><ProgressBar value={props.phaseDeployed} max={props.phaseSize} tone="brand" /></div>
+        {phaseLocked && props.lockedReason && (
+          <div className="mt-2 text-[11px] inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            {props.lockedReason}
+          </div>
+        )}
       </div>
 
       <form onSubmit={submit} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
@@ -196,7 +207,7 @@ export function ExecutionLog(props: ExecutionLogProps) {
           />
         </Field>
         <Field label="\u00A0">
-          <Button type="submit" disabled={busy || (willExceed && !override)} variant="primary" className="h-10 w-full justify-center">
+          <Button type="submit" disabled={busy || ((willExceed || phaseLocked) && !override)} variant="primary" className="h-10 w-full justify-center">
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
             {busy ? "Saving…" : "Log buy"}
           </Button>
@@ -207,7 +218,12 @@ export function ExecutionLog(props: ExecutionLogProps) {
         <div className="subtle">
           This buy: <span className="font-mono">${projectedCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
         </div>
-        {willExceed ? (
+        {phaseLocked ? (
+          <div className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Phase {props.currentPhase} is locked. Tick override to log a buy anyway.
+          </div>
+        ) : willExceed ? (
           <div className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
             <AlertTriangle className="w-3.5 h-3.5" />
             Exceeds phase {props.currentPhase} remaining (${Math.round(props.phaseRemaining).toLocaleString()}). Tick override to proceed.

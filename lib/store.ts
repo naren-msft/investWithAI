@@ -67,15 +67,3 @@ export function aggregateHoldings(execs: Execution[]): Holding[] {
 export function totalDeployed(execs: Execution[]): number {
   return execs.reduce((s, e) => s + e.shares * e.price, 0);
 }
-
-// Mark tranches executed/next/pending based on cumulative deployed cash.
-export function withTrancheStatus(tranches: readonly Tranche[], deployed: number): Tranche[] {
-  let cum = 0;
-  let nextAssigned = false;
-  return tranches.map((t) => {
-    cum += t.size;
-    if (deployed >= cum) return { ...t, status: "executed" };
-    if (!nextAssigned) { nextAssigned = true; return { ...t, status: "next" }; }
-    return { ...t, status: "pending" };
-  });
-}

@@ -13,6 +13,10 @@ export interface PhaseCap {
 
 // Determine the "current" phase from deployed cash and compute the phase cap.
 // Definition: current phase = first phase whose cumulative target hasn't been met.
+//
+// Note: gate-aware "current phase" selection lives in lib/phaseGate.ts. This
+// function preserves the original dollar-cumulative logic so callers that just
+// need budget bookkeeping (independent of triggers) keep working.
 export function phaseCap(tranches: readonly Tranche[], execs: Execution[]): PhaseCap {
   const deployed = execs.reduce((s, e) => s + e.shares * e.price, 0);
   let cum = 0;

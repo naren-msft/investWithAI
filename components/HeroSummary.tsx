@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { CapitalEditor } from "@/components/CapitalEditor";
 import { HelpCircle } from "lucide-react";
 import { fmtUsd } from "@/lib/format";
 
@@ -35,6 +36,7 @@ export function HeroSummary({ data }: { data: PipelineResult }) {
           <Badge variant={data.dayPnlUsd >= 0 ? "success" : "danger"}>
             Day P/L {fmtUsd(data.dayPnlUsd, true)}
           </Badge>
+          <CapitalEditor capital={data.capital} cashBuffer={data.cashBuffer} />
           <AutoRefresh />
           <Link
             href="/help"

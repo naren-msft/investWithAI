@@ -1,7 +1,4 @@
-import { runPipeline } from "@/lib/agents";
-import { TRANCHES } from "@/config/portfolio";
-import type { Tranche } from "@/types";
-import { TickerMarquee } from "@/components/TickerMarquee";
+import { MarketAwareTicker } from "@/components/MarketAwareTicker";
 import { HeroSummary } from "@/components/HeroSummary";
 import { RegimeBanner } from "@/components/RegimeBanner";
 import { BuyRecommendations } from "@/components/BuyRecommendations";
@@ -18,16 +15,33 @@ import { ChangeBanner } from "@/components/ChangeBanner";
 import { OverlapAnalysis } from "@/components/OverlapAnalysis";
 import { EquityCurve } from "@/components/EquityCurve";
 import { PortfolioInsights } from "@/components/PortfolioInsights";
+import { ExposurePanel } from "@/components/ExposurePanel";
+import { RiskPanel } from "@/components/RiskPanel";
+import { UnderDeploymentSummary } from "@/components/UnderDeploymentSummary";
+import { ScenarioPanel } from "@/components/ScenarioPanel";
+import { NextBestAllocation } from "@/components/NextBestAllocation";
+import { runPipeline } from "@/lib/agents";
 import { Card } from "@/components/ui/Card";
 import { AlertTriangle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: { capital?: string; buffer?: string };
+}) {
+  const capitalParam = Number(searchParams?.capital);
+  const bufferParam = Number(searchParams?.buffer);
+  const overrides = {
+    capital: Number.isFinite(capitalParam) && capitalParam > 0 ? capitalParam : undefined,
+    cashBuffer: Number.isFinite(bufferParam) && bufferParam >= 0 ? bufferParam : undefined,
+  };
+
   let data;
   try {
-    data = await runPipeline();
+    data = await runPipeline(overrides);
   } catch (e: any) {
     return (
       <main className="max-w-6xl mx-auto p-6">
@@ -46,24 +60,24 @@ export default async function Page() {
   }
 
   const tickers = data.drift.map((d) => d.ticker);
-  const currentPhase = data.currentTranche.phase;
-  const tranches: Tranche[] = TRANCHES.map((t) => ({
-    ...t,
-    status: t.phase < currentPhase ? "executed" : t.phase === currentPhase ? "next" : "pending",
-  }));
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
-      <TickerMarquee recs={data.recommendations} asOf={data.asOf} />
+      <MarketAwareTicker recs={data.recommendations} asOf={data.asOf} />
       <ChangeBanner refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <HeroSummary data={data} />
       <RegimeBanner regime={data.regime} />
       <PortfolioInsights data={data} />
+      <UnderDeploymentSummary data={data} />
+      <NextBestAllocation data={data} />
+      <ExposurePanel data={data} />
+      <RiskPanel data={data} />
+      <ScenarioPanel data={data} />
       <OverlapAnalysis refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <EquityCurve refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <DividendTracker refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
       <TaxLotTracker  refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
-      <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} drift={data.drift} signals={data.signals} />
+      <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} skipped={data.skippedBuys} phaseReady={data.phaseReady} lockedReason={data.phaseLockedReason} />
 
       <AllocationTable rows={data.drift} recommendations={data.recommendations} />
       <ExecutionLog
@@ -77,12 +91,19 @@ export default async function Page() {
         phaseRemaining={data.currentPhaseRemainingUsd}
         capital={data.capital}
         totalDeployed={data.deployedUsd}
+        phaseReady={data.phaseReady}
+        lockedReason={data.phaseLockedReason}
       />
       <AllocationDonut rows={data.drift} />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <PriceChart tickers={tickers} />
-        <DeploymentPlan tranches={tranches} currentBudget={data.trancheBudget} />
+        <DeploymentPlan
+          gates={data.phaseGates}
+          anchor={data.phaseAnchor}
+          currentBudget={data.trancheBudget}
+          regimeKind={data.regime.kind}
+        />
       </div>
 
       <FidelityPanel recs={data.recommendations} />

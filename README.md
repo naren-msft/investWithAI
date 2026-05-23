@@ -1,8 +1,8 @@
 # InvestWithAI — ETF Portfolio Dashboard
 
-A multi-agent ETF allocation dashboard that operationalizes a staged-deployment investment plan for a Fidelity brokerage account. Live Yahoo Finance data, 5 cooperating agents, phased capital deployment with hard caps, and full execution-loop tracking.
+A multi-agent ETF allocation dashboard that operationalizes a staged-deployment investment plan for a brokerage account (Fidelity deep links included). Live Yahoo Finance data, 5 cooperating agents, phased capital deployment with hard caps, and full execution-loop tracking.
 
-> **Educational only — not investment advice.** ETFs involve risk including possible loss of principal.
+> **Educational / demo project — not investment advice.** The capital figures, tickers, and allocation in `config/portfolio.ts` are an **example only**; edit them for your own situation. ETFs involve risk including possible loss of principal. No warranty of any kind.
 
 ## What it does
 
@@ -20,6 +20,8 @@ A multi-agent ETF allocation dashboard that operationalizes a staged-deployment 
 
 ## Portfolio (editable in `config/portfolio.ts`)
 
+Total capital and the reserved cash buffer can be changed at runtime from the **Edit sizing** button in the dashboard hero card (persists per browser via `localStorage` and a `?capital=…&buffer=…` URL override). All derived cards — tranche sizes, deployment plan, sizing %s — recompute automatically. Defaults can also be set via `CAPITAL` / `CASH_BUFFER` env vars (see `.env.example`).
+
 | Ticker | Weight | Expense | Role |
 |--------|------:|--------:|------|
 | FELC   | 18%   | 0.18%   | US large-cap core (Fidelity Enhanced) |
@@ -34,7 +36,19 @@ A multi-agent ETF allocation dashboard that operationalizes a staged-deployment 
 | XBI    |  4%   | 0.35%   | Biotech upside kicker |
 | FBND   |  4%   | 0.36%   | Bond ballast |
 
-**Blended expense ratio: ~0.22%/yr (~$650/yr on $300K).** Total capital $300K · cash buffer $60K reserved · $240K deployable across 4 tranches ($140K initial + 3 × ~$33K phased).
+**Blended expense ratio: ~0.22%/yr (~$650/yr on $300K).** Total capital $300K, deployed across **5 phases** ($120K + $40K + $40K + $40K + $60K). The final $60K phase represents the cash buffer release — it only unlocks on trend confirmation (regime = rally) or after 90 days from the P1 anchor.
+
+### Staged deployment plan
+
+| Phase | Amount | Trigger                                              |
+|------:|-------:|------------------------------------------------------|
+| P1    | $120K  | Start immediately                                    |
+| P2    | $40K   | SPY −5% from P1 peak  OR  30 days elapsed            |
+| P3    | $40K   | SPY −8% from P1 peak  OR  60 days elapsed            |
+| P4    | $40K   | SPY −12% correction from P1 peak (no time fallback)  |
+| P5    | $60K   | Trend confirmation (regime = rally)  OR  90 days     |
+
+Triggers are evaluated live by `lib/phaseGate.ts`: the P1 anchor is the date of your first logged execution (or today if none), and the SPY drawdown is measured from the **peak SPY close since the anchor**. Each phase shows its current status — **ready**, **locked**, **filled**, or **executed** — on the *Staged capital deployment* card.
 
 ## Run
 
@@ -101,7 +115,7 @@ data/executions.json # your buy log (gitignored)
 
 - **Different capital / buffer?** Edit `CAPITAL` and `CASH_BUFFER` in `config/portfolio.ts`.
 - **Different ETFs / weights?** Edit `TARGETS` — weights must sum to 1.0.
-- **Different tranche plan?** Edit `TRANCHES` (sizes should sum to `CAPITAL − CASH_BUFFER`).
+- **Different tranche plan?** Edit `TRANCHES`. Each tranche has `size`, a human-readable `gate`, and a structured `triggers` object (`daysFromStart`, `spyDrawdownPct`, `trendConfirmation`) with OR semantics. Sizes should sum to `CAPITAL`.
 - **Tighter signal thresholds?** Edit `lib/agents/signalAnalysis.ts` (RSI thresholds + MACD confirmation rule).
 - **Different regime sensitivity?** Edit `lib/regime.ts` (thresholds + multipliers per mode).
 

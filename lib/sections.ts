@@ -111,6 +111,46 @@ export const SECTIONS: HelpSection[] = [
     related: ["regime-banner", "allocation-table"],
   },
   {
+    id: "exposure",
+    title: "Exposure",
+    oneLiner: "How exposed am I right now — equity sleeves, international, fixed income, alternatives, cash.",
+    whatItIs:
+      "An aggregated view of where your capital is actually sitting. The 8 ETFs in the universe are grouped into 5 sleeves (Equity Growth, Equity Defensive, International, Fixed Income, Alternatives), each with its current $, target $, drift, and a fill bar.",
+    whyItMatters:
+      "The #1 question every real investor asks is 'how exposed am I to X right now?' The allocation table shows per-ETF rows; this card answers it at the sleeve level. It also surfaces dry powder (cash above the reserved buffer) and the buffer itself so you can see what's still uncommitted.",
+    howToRead: [
+      "Top tiles: total equity (Growth + Defensive) currently held vs. target; portfolio value with deployment %; cash remaining (above the buffer); reserved buffer (releases on P5).",
+      "Per-sleeve rows show the contributing tickers, current $, target $, drift $ (green = underweight = should buy more; amber = overweight), and a fill bar.",
+      "Drift signs match the convention used elsewhere: positive drift = room to deploy; negative drift = already over target.",
+    ],
+    faqs: [
+      { q: "Why does the energy ETF (FENY) live under 'Alternatives' instead of 'Equity'?", a: "By role — FENY is classified as an inflation hedge / commodity-linked sleeve, not as a core equity allocation. The sleeve map lives in config/portfolio.ts → ROLE_TO_SLEEVE; edit there to reclassify." },
+      { q: "Should sleeve currents sum to portfolio value?", a: "Yes — sleeves cover every ETF in the universe exactly once. If your executions cover all 8 tickers, sleeve currents + cash should equal capital." },
+    ],
+    related: ["risk-profile", "allocation-table", "overlap", "sector-mix"],
+  },
+  {
+    id: "risk-profile",
+    title: "Risk profile",
+    oneLiner: "Forward-looking portfolio β, concentration (HHI / effective N), per-ETF β and worst-12mo drawdown.",
+    whatItIs:
+      "A forward-looking risk panel — independent of how much you've actually deployed. Portfolio β is computed from 252 trading days of daily log-return regression vs SPY for each ETF, then weight-averaged. Per-ETF worst-12mo is the empirical worst rolling 252-day return over the last 3 years.",
+    whyItMatters:
+      "Your equity curve panel reports realized risk (Sharpe, Sortino, β, max DD on your actual executions). That's meaningless if you've only deployed P1. This card answers a different question: 'if the market moves 10% tomorrow, how does the *plan* behave?' β=1.0 means market-like; β=0.93 means a 10% SPY drop ≈ 9.3% portfolio drop. HHI / Effective N tells you how concentrated the target allocation actually is — Effective N=6.1 means your 8 ETFs are weighted similarly to 6 equal-weight positions.",
+    howToRead: [
+      "Top tiles: portfolio β with one-line interpretation; HHI; effective N; average worst-12mo across the universe.",
+      "Per-ETF table: target weight · β vs SPY · worst rolling 12mo return over 3yr · 2σ parametric annual DD floor.",
+      "β is computed in-house (1yr daily regression). Yahoo's published β uses 3–5yr monthly data and materially understates daily β for thematic ETFs like SMH — don't be alarmed when our number is much higher than Yahoo's.",
+      "Worst-12mo is empirical (fat tails included). 2σ-DD is parametric (assumes normal returns; historically underestimates tails by 20–40%).",
+    ],
+    faqs: [
+      { q: "Why is FENY's β slightly negative right now?", a: "Energy has been mildly anti-correlated with broad equity over the last 12 months in some samples. Small-magnitude negative βs from a 252-day regression are normal noise for sector ETFs that ran on their own narrative (oil, commodities) decoupled from SPY." },
+      { q: "Why is XAR's worst-12mo showing 0%?", a: "Insufficient history depth in the 3yr lookback window relative to that ETF's listing date / data availability. Will populate naturally once enough history accumulates." },
+      { q: "How is HHI labeled?", a: "diversified < 0.10 < moderate < 0.18 < concentrated < 0.25 < highly-concentrated. Our 8-ETF target portfolio sits at HHI ≈ 0.16 (moderate)." },
+    ],
+    related: ["exposure", "equity-curve", "overlap", "hhi-throttle", "sector-mix"],
+  },
+  {
     id: "overlap",
     title: "Hidden concentration & sector X-ray",
     oneLiner: "Decomposes all ETFs into underlying stocks to surface true single-stock and sector exposure.",
@@ -343,6 +383,134 @@ export const SECTIONS: HelpSection[] = [
       { q: "Can I tune the rules?", a: "Yes — RSI thresholds in lib/agents/signalAnalysis.ts, regime multipliers in lib/regime.ts, allocation formula in lib/agents/allocationStrategy.ts." },
     ],
     related: ["regime-banner", "recommendations"],
+  },
+  {
+    id: "under-deployment",
+    title: "Under-deployment explained",
+    oneLiner: "Dashboard-level breakdown of why the next tranche isn't fully deployed.",
+    whatItIs:
+      "A single card that answers 'I have $X cash — why isn't every dollar working?'. It shows the full tranche-sizing chain (base → regime → β-throttle → vol cap → headroom → cash) AND lists every ETF the Execution Decision agent excluded this run, grouped by reason.",
+    whyItMatters:
+      "Without this card you have to triangulate across Regime, Risk, Agent cards, and the Allocation table to figure out 'why so little buying?'. This card consolidates that into one place using the same structured `sizing` and `skippedBuys` diagnostics the pipeline emits — so the numbers are guaranteed consistent.",
+    howToRead: [
+      "Top tiles: tranche budget, $ recommended this run, $ unallocated, and the final multiplier vs base.",
+      "Sizing chain: each line is one cap or multiplier applied to the base tranche — read top-to-bottom to see what shrank it (regime, β-throttle, VIX cap, phase headroom, deployable cash).",
+      "Per-ETF blocking reasons: ETFs grouped by code — AVOID/RSI gates, drift < $1k floor, sector cap (hard or soft-zero), tranche-zero, fractional share. Count next to each group.",
+      "If the unallocated badge is green, the tranche fully deployed.",
+      "If 'β-throttle' or 'Vol cap' shrank the tranche, see Risk Profile for the underlying numbers.",
+    ],
+    faqs: [
+      { q: "Why is 'Not underweight' missing from the list?", a: "Tickers that are already at or above their target weight aren't candidates for *additional* buys, so they aren't surfaced as 'blocked' — the rebalance side handles them." },
+      { q: "What is the $1k drift floor?", a: "The execution agent ignores buys smaller than $1,000 of drift to avoid micro-trades. Tune it in lib/agents/executionDecision.ts." },
+    ],
+    related: ["recommendations", "risk-profile", "regime-banner", "agent-cards", "next-best-allocation", "hhi-throttle"],
+  },
+  {
+    id: "scenarios",
+    title: "Forward-looking scenarios",
+    oneLiner: "What would happen on a −5% pullback, a −12% correction, or a +10% rally?",
+    whatItIs:
+      "A pure-functional scenario engine that re-prices SPY at hypothetical spots, recomputes drawdown vs the existing historical peak, and replays the phase-progression triggers honestly to predict which phase the deployment plan would be in.",
+    whyItMatters:
+      "Tells you, *before* the move happens: 'if SPY drops 12% would my next tranche actually fire?' or 'would the rally-confirmation phase advance trigger?'. Catches situations where you think you're protected by the plan but the trigger thresholds wouldn't actually fire on a realistic move.",
+    howToRead: [
+      "Pullback (−5%, VIX 22): a routine dip — typically advances drawdown-trigger phases but not rally ones.",
+      "Correction (−12%, VIX 30): a real correction — checks whether deeper drawdown phases advance and whether the VIX cap clamps tranche size.",
+      "Rally (+10%, VIX 14): assumes trend-confirmation is true; tests whether your rally-only phase advances would trigger.",
+      "Each card shows: projected SPY price, projected drawdown, the phase the plan would be in, and the projected portfolio value at the shocked spot.",
+      "Scenarios deliberately do NOT re-run the multi-factor regime model — they only shift price + VIX and let the deterministic phase triggers evaluate.",
+    ],
+    faqs: [
+      { q: "Why doesn't the rally scenario use trend-confirmation from current data?", a: "Trend confirmation requires multi-day price action — we can't fabricate that from a single shock. The rally scenario sets assumeRally=true explicitly so the trend gate evaluates as if the rally were confirmed." },
+      { q: "Can I add custom scenarios?", a: "Yes — edit DEFAULT_SCENARIOS in lib/scenarios.ts to add or change shocks (spy %, VIX, time offset)." },
+    ],
+    related: ["regime-banner", "deployment-plan", "risk-profile", "probability-weighted"],
+  },
+  {
+    id: "next-best-allocation",
+    title: "Next best allocation",
+    oneLiner: "If a gate cleared, which ETF would absorb the next dollar — and what's blocking it today?",
+    whatItIs:
+      "A queue of the top-5 ETFs the Execution Decision agent skipped this run, ranked by how much unfilled drift they have. Each row shows the current block reason and the specific condition that would unlock the buy.",
+    whyItMatters:
+      "Connects the *skipped* list to actionable monitoring. Instead of 'X ETFs were skipped', you see exactly which threshold to watch (RSI < 70, sector cap relaxation, phase unlock) and how much capital would deploy when it clears. Effectively the pre-staged shadow plan behind the current tranche.",
+    howToRead: [
+      "Rows ordered by unfilled-drift dollars — bigger numbers mean a bigger buy would land if the condition cleared.",
+      "Currently blocked: the reason string from the Execution Decision agent (sector cap, AVOID rating, fractional share, etc).",
+      "Unlocks: the concrete condition you can watch for — e.g. 'RSI drops below 70' or 'sector exposure falls below 35%'.",
+      "If the queue is empty, every eligible ETF either got bought this run or isn't underweight.",
+    ],
+    faqs: [
+      { q: "Why only 5?", a: "Beyond top-5 the dollar amounts get small; we keep the list scannable. The full skipped list lives in Under-deployment explained." },
+      { q: "What if my drift is positive (over-weight)?", a: "Over-weight ETFs aren't candidates for buys, so they aren't in this queue. They show up in the rebalance / drift table instead." },
+      { q: "Does this fire orders automatically?", a: "No — it's a forward-looking display only. The Execution Decision agent re-evaluates each run with current market data." },
+    ],
+    related: ["under-deployment", "recommendations", "risk-profile"],
+  },
+  {
+    id: "sector-mix",
+    title: "Sector mix (Tech / Defensive / Cyclical)",
+    oneLiner: "How your portfolio breaks down by economic sector — the way most investors actually think about exposure.",
+    whatItIs:
+      "A 4-tile summary inside the Exposure panel that maps every ETF's underlying holdings (via Yahoo `topHoldings.sectorWeightings`) into three behavioural buckets — Tech, Defensive, Cyclical — plus an Other category for unmapped / fixed-income exposure. A top-sectors bar list shows the raw GICS rollup beneath.",
+    whyItMatters:
+      "Sleeve labels (equity-growth, international, alts) tell you what the *role* of an ETF is in the plan, but not what it actually owns. Two ETFs in different sleeves can both be 60% Tech. This view makes hidden sector concentration visible — critical context for the HHI throttle and for spotting unintended bets.",
+    howToRead: [
+      "Tech = Technology + Communication Services. The biggest driver of US equity returns since 2020 and the largest single concentration risk.",
+      "Defensive = Healthcare + Consumer Defensive + Utilities. Low-β sectors that hold up in drawdowns.",
+      "Cyclical = Financials + Consumer Cyclical + Industrials + Energy + Basic Materials + Real Estate. Sensitive to growth / rate cycles.",
+      "Other = unmapped sectors and fixed-income (bond ETFs don't report sector weightings).",
+      "Top-sectors list: raw GICS sectors ranked by portfolio-weighted exposure. Bar lengths are relative to the largest sector.",
+      "All percentages are computed against *target* weights × ETF sector composition — so what the portfolio looks like once fully deployed, not the partially-invested state.",
+    ],
+    faqs: [
+      { q: "Why is Tech so high — I didn't pick a Tech ETF.", a: "Broad-market US ETFs (VTI, VOO, QQQ) carry 25–55% Tech under the hood. That's how index-cap weighting works in 2024/2025." },
+      { q: "Why is the 'Other' bucket large?", a: "Bond ETFs (BND, AGG, TLT) and some alts don't report sector weightings — Yahoo returns empty. They aggregate into Other rather than being dropped." },
+      { q: "Can I add a sector cap?", a: "Sector caps already exist as soft (25%) and hard (35%) limits in lib/config — they filter buy candidates in the Execution Decision agent. See lib/risk/sectorCap.ts." },
+    ],
+    related: ["exposure", "overlap", "risk-profile", "hhi-throttle"],
+  },
+  {
+    id: "hhi-throttle",
+    title: "HHI concentration throttle",
+    oneLiner: "Portfolio is concentrated? Tranche shrinks automatically — not just visualised.",
+    whatItIs:
+      "A multiplier applied to the base tranche based on the portfolio's Herfindahl-Hirschman Index (HHI) concentration level. Diversified and moderate portfolios → 1.0× (no impact). Concentrated → 0.85×. Highly-concentrated → 0.60×. Stacks multiplicatively with the regime multiplier and β-throttle.",
+    whyItMatters:
+      "Without this, the dashboard would show 'highly-concentrated' as a yellow badge and still recommend full tranche buys — leaving you to mentally adjust position size. Making the throttle automatic closes the loop between *measuring* risk and *acting* on it. It's the same pattern as the β-throttle and vol-cap: a deterministic rule that shrinks the next purchase when a risk metric breaches a threshold.",
+    howToRead: [
+      "Visible in Under-deployment explained as the 'HHI throttle' bullet, with the active multiplier and the underlying HHI score.",
+      "Visible in Risk Profile's HHI tile — the sub-text shows the throttle level (none / soft / hard).",
+      "Thresholds match the existing HHI labels: < 0.10 diversified, < 0.18 moderate, < 0.25 concentrated, ≥ 0.25 highly-concentrated.",
+      "Stack order: regime × β-throttle × HHI-throttle → vol cap → phase headroom → deployable cash. The smallest cap wins.",
+    ],
+    faqs: [
+      { q: "Why three multipliers stacked instead of one?", a: "Each represents an independent risk source (macro regime, single-ETF beta, portfolio concentration). Compounding lets two mild signals combine into one strong scale-down without making any single rule too aggressive." },
+      { q: "Can the throttle hit 0×?", a: "No — minimum is 0.60× (highly-concentrated). The vol-cap can drive tranche to zero, but the HHI throttle is designed to slow buying, not stop it. Concentration is reduced by *rebalancing*, which can't happen if buys are blocked entirely." },
+      { q: "Where can I tune the thresholds?", a: "lib/risk/concentrationThrottle.ts. Both the HHI bands and the multipliers are exported constants." },
+    ],
+    related: ["risk-profile", "under-deployment", "sector-mix"],
+  },
+  {
+    id: "probability-weighted",
+    title: "Probability-weighted outlook",
+    oneLiner: "Combines all forward scenarios into a single expected value and expected tranche size.",
+    whatItIs:
+      "A footer in the Forward-looking scenarios card that multiplies each scenario's projected portfolio value (and projected next-tranche size) by its prior probability and sums them. Probabilities are subjective base rates set in DEFAULT_SCENARIOS — pullback 45%, correction 20%, rally 35%.",
+    whyItMatters:
+      "Min/max bracket thinking ('SPY could go to X or Y') doesn't help with sizing decisions. A probability-weighted expectation does. If the rally has 35% probability and would unlock $20k of buys, while the correction has 20% probability and would unlock $30k, the expected unlock is closer to one number you can plan around — not three branches you have to mentally average.",
+    howToRead: [
+      "Expected portfolio value = Σ(probability × projectedPortfolioValue across scenarios). Compared to today's value to show the expected delta.",
+      "Expected next tranche = Σ(probability × scenarioTrancheSize). Useful for cash planning over the next few weeks.",
+      "Coverage = sum of assigned probabilities. If < 100%, the calculation re-normalises so missing scenarios don't bias the math down.",
+      "Each scenario card also shows its individual prior probability above the tiles.",
+    ],
+    faqs: [
+      { q: "Where do the probabilities come from?", a: "Subjective priors I set based on rough historical frequency of these moves over a multi-month horizon. They are NOT forecasts. Edit DEFAULT_SCENARIOS in lib/scenarios.ts to change them." },
+      { q: "Why don't the probabilities sum to 1.0?", a: "They're meant to. If you remove or add scenarios you may end up with a fractional total — the dashboard re-normalises rather than refusing to display." },
+      { q: "Should I act on the expected value directly?", a: "Treat it as one input among several. Probability-weighting flattens tail risk, so for risk-management decisions also look at the individual correction scenario." },
+    ],
+    related: ["scenarios", "regime-banner", "deployment-plan"],
   },
 ];
 
