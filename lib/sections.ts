@@ -613,6 +613,206 @@ export const SECTIONS: HelpSection[] = [
     ],
     related: ["recommendations", "risk-profile", "agent-cards"],
   },
+
+  // ====================================================================
+  //  STOCK SCREENER (/screener)
+  // ====================================================================
+  {
+    id: "screener-overview",
+    title: "Stock Screener — overview",
+    oneLiner: "Deterministic 3-gate funnel that ranks ~30 tickers across 9 secular themes.",
+    whatItIs:
+      "A research dashboard at /screener that applies a rules-based pipeline — Fundamentals → Moat → Market Confirmation — to a hand-curated universe of companies that benefit from durable multi-year waves (AI compute, chipmaking equipment, HBM, datacenter networking & power, cybersecurity, healthcare AI, quantum, quantum-safe).",
+    whyItMatters:
+      "Theme-based investing tends to over-reward narrative and under-reward execution. By running every candidate through the same three quantitative gates and producing a single 0-100 confidence score, the screener turns 'gut feel' into a comparable, reproducible signal. It's intentionally NOT a buy list — it's a watchlist generator with the math shown.",
+    howToRead: [
+      "Header strip: pass count (made all 3 gates), high-confidence count, medium-confidence count.",
+      "Theme map: 9 cards, each showing pass-rate bar + Core/Emerging/Venture counts + sleeve cap.",
+      "Ranked watchlist: every ticker sorted by confidence score descending. Click any row for the per-gate breakdown.",
+      "Methodology card explains every threshold used.",
+      "Top filter chips let you narrow to Pass-all-3 / Core / Emerging / Venture, plus a theme dropdown.",
+    ],
+    faqs: [
+      { q: "Why isn't ticker X in the screener?", a: "The universe is hand-curated to themes with clear chokepoint logic. Add or remove tickers in config/screener-themes.ts." },
+      { q: "How often does it refresh?", a: "5-minute server cache on full screener output, 60-second cache on individual Yahoo quote/history fetches. Reload after 5 minutes for fully fresh scores." },
+      { q: "Is this a buy list?", a: "No. It's a deterministic research aid. High confidence ≠ recommendation. Always do your own due diligence, especially on Venture-tagged names." },
+    ],
+    related: ["screener-themes", "screener-gate-fundamentals", "screener-confidence"],
+  },
+  {
+    id: "screener-themes",
+    title: "Theme map",
+    oneLiner: "9 secular themes, each mapped to chokepoint companies in that value chain.",
+    whatItIs:
+      "A grid of 9 theme cards covering AI Compute, Chipmaking Equipment, Memory/HBM, Datacenter Networking, Datacenter Power, Cybersecurity, Healthcare AI, Quantum Computing, and Quantum-Safe / PQC. Each theme has a rationale, a sleeve cap (advisory max % of capital), and a count of tickers passing all 3 gates.",
+    whyItMatters:
+      "Spreading across uncorrelated sub-themes reduces single-narrative risk. If 'AI Compute' has a sentiment-driven drawdown, your Healthcare AI and Cybersecurity exposure should be less affected. The sleeve cap suggestion (e.g. 25% for AI Compute, 6% for Quantum) reflects how speculative the theme is.",
+    howToRead: [
+      "Pass-rate bar: green fill = % of tickers in that theme passing all 3 gates today.",
+      "Core (blue) / Emerging (yellow) / Venture (red) counts show conviction tier mix.",
+      "Sleeve cap: advisory ceiling for that theme's allocation in your overall screener bucket.",
+      "Themes with secondary memberships (e.g. AVGO appears in AI Compute AND Datacenter Networking) only count once.",
+    ],
+    related: ["screener-tags", "screener-overview"],
+  },
+  {
+    id: "screener-tags",
+    title: "Core / Emerging / Venture tags",
+    oneLiner: "Conviction tiers that drive tier-aware thresholds across all 3 gates.",
+    whatItIs:
+      "Every ticker is hand-tagged Core, Emerging, or Venture. The tag is a prior on business maturity and uncertainty, not a momentary momentum read.",
+    whyItMatters:
+      "Holding NVDA and IONQ to the same fundamental and trend bar is silly — NVDA is a $3T+ profit machine, IONQ is pre-revenue R&D. Tier-aware thresholds let the screener be strict on Core names (where it matters) and tolerant on Venture names (where the bet is on milestones, not margins).",
+    howToRead: [
+      "Core (blue): mature, profitable, share-leader. Held to 15%+ rev growth, 45%+ gross margin, positive FCF, ROE ≥12%.",
+      "Emerging (yellow): growing fast, may still be unprofitable. Held to 25%+ rev growth, 35%+ gross margin, FCF optional, ROE ≥0%.",
+      "Venture (red): pre-commercial or frontier (most quantum hardware names). Fundamentals gate is a sanity check only; trend gate uses 4-condition relaxed Minervini variant.",
+      "Tranche split also changes by tag: Core 50/25/25, Emerging 40/30/30, Venture 33/33/33.",
+    ],
+    referenceTables: [
+      {
+        title: "Tier thresholds at a glance",
+        columns: ["Tag", "Min rev growth", "Min gross margin", "Min op margin", "FCF required", "Max D/E", "Min ROE"],
+        rows: [
+          ["Core",     "15%", "45%", "10%",  "Yes", "200", "12%"],
+          ["Emerging", "25%", "35%", "0%",   "No",  "300", "0%"],
+          ["Venture",  "0%",  "0%",  "-100%","No",  "999", "-100%"],
+        ],
+        footnote: "Venture thresholds are intentionally loose — the bet is on milestones (quantum hardware, frontier biotech) not unit economics. Fail = data missing entirely.",
+      },
+    ],
+    related: ["screener-gate-fundamentals", "screener-gate-trend"],
+  },
+  {
+    id: "screener-gate-fundamentals",
+    title: "Gate 1 — Fundamentals (40 pts)",
+    oneLiner: "Tier-aware quality bar across growth, margins, cash flow, and balance sheet.",
+    whatItIs:
+      "Six rules scored from Yahoo Finance financialData + defaultKeyStatistics: revenue growth, gross margin, operating margin, free cash flow, debt-to-equity, and return on equity. Each check awards 0 or a fixed point value; the gate is 'passed' when the score is ≥25/40 (62.5%).",
+    whyItMatters:
+      "Demand visibility (revenue growth + margin expansion) and capital strength (FCF + balance sheet) are the two best predictors of survival through downcycles. A company that can't fund its own roadmap in a high-rate environment will get squeezed regardless of how compelling its story is.",
+    howToRead: [
+      "Revenue growth (10 pts): YoY trailing revenue growth ≥ tier threshold.",
+      "Gross margin (8 pts): trailing gross margin ≥ tier threshold — measures pricing power.",
+      "Operating margin (7 pts): shows operating leverage; relaxed to ≥0% for Emerging, unrestricted for Venture.",
+      "Free cash flow (7 pts): positive FCF required for Core. Earns 3 'consolation' pts for Emerging/Venture if positive.",
+      "Debt/Equity (5 pts): ≤200 Core, ≤300 Emerging, ≤999 Venture (Venture often has cash burn + equity raises distorting D/E).",
+      "ROE (3 pts): return on equity ≥ tier floor.",
+    ],
+    faqs: [
+      { q: "Why does Yahoo show 'n/a' for some fields?", a: "yahoo-finance2 returns nulls for missing or schema-mismatched values. The data quality component (10 pts) penalizes nulls so you know when a score is fragile." },
+      { q: "Why isn't earnings growth in Gate 1?", a: "It's read from Yahoo but not scored. Earnings growth is noisy for growth-stage names where accounting earnings lag economic value creation. Revenue growth + margins are more robust." },
+    ],
+    related: ["screener-tags", "screener-gate-moat", "screener-confidence"],
+  },
+  {
+    id: "screener-gate-moat",
+    title: "Gate 2 — Moat & Positioning (25 pts)",
+    oneLiner: "Manual chokepoint anchor plus quantitative proxies for institutional belief.",
+    whatItIs:
+      "A hybrid gate: one human-curated chokepoint statement explaining why the company is non-optional in its value chain (e.g. ASML = sole EUV lithography vendor), plus four quantitative proxies from Yahoo's analyst-consensus and major-holders data. Gate passes at ≥14/25.",
+    whyItMatters:
+      "True moats — switching costs, regulatory licenses, network effects, efficient scale — can't be detected algorithmically from Yahoo data. They require domain knowledge. By anchoring the gate to a written chokepoint claim (auditable, editable in config/screener-themes.ts) and surrounding it with quantitative confirmations (analysts + institutions are paying), the gate captures both qualitative and quantitative belief in the moat.",
+    howToRead: [
+      "Chokepoint (8 pts): manual statement + moat type (network / switching / intangible / cost / scale / regulatory). Visible in the row drill-down.",
+      "Analyst consensus (6 pts): Yahoo recommendationMean ≤ 2.5 (= Buy or better; 1=StrongBuy, 5=Sell).",
+      "Institutional ownership (5 pts): ≥50% for Core/Emerging, ≥20% for Venture.",
+      "Analyst coverage breadth (4 pts): ≥5 analysts for Core/Emerging, ≥2 for Venture. Thin coverage triggers a caveat.",
+      "Target upside (2 pts): mean analyst target ≥10% above current price.",
+    ],
+    faqs: [
+      { q: "Aren't analyst ratings a lagging indicator?", a: "Yes — that's the point. They confirm institutional consensus, they don't predict it. The chokepoint claim is the forward-looking part." },
+      { q: "Can I edit a chokepoint statement?", a: "Yes — edit config/screener-themes.ts. Each ticker has chokepoint, moatType, tag, secondaryThemes." },
+    ],
+    related: ["screener-gate-fundamentals", "screener-gate-trend", "screener-confidence"],
+  },
+  {
+    id: "screener-gate-trend",
+    title: "Gate 3 — Market Confirmation (20 pts)",
+    oneLiner: "Minervini Trend Template — confirms Stage-2 uptrend with 8 price/MA conditions.",
+    whatItIs:
+      "Mark Minervini's 8-condition price-action template applied to daily closes. Tests whether a stock is in a confirmed Stage-2 uptrend (the only stage where institutional accumulation supports breakouts). Each condition awards 2.5 pts; gate passes at ≥6/8 conditions (15 pts). Venture tickers use a 4-condition relaxed variant scored 5 pts each.",
+    whyItMatters:
+      "Great fundamentals + great moat + DOWNTREND = catch falling knife. The trend gate prevents the screener from recommending great companies during their drawdowns. Combined with the regime forcing Watch-only during SPY corrections, it implements the discipline 'don't fight the tape'.",
+    howToRead: [
+      "C1: Price > 150-DMA AND > 200-DMA — basic uptrend confirmation.",
+      "C2: 150-DMA > 200-DMA — medium-term trend agrees with long-term.",
+      "C3: 200-DMA slope rising (today's 200-DMA > 21 days ago) — long-term trend is up.",
+      "C4: 50-DMA > 150-DMA AND > 200-DMA — short-term ahead of medium and long.",
+      "C5: Price ≥30% above 52-wk low — has rallied off the bottom (Stage-2 confirmation).",
+      "C6: Price within 25% of 52-wk high — close to breakout territory.",
+      "C7: RSI(14) in 50-80 zone — healthy momentum, not extended.",
+      "C8: MACD histogram > 0 AND rising — momentum still accelerating.",
+    ],
+    referenceTables: [
+      {
+        title: "Venture relaxed variant (4 conditions × 5 pts)",
+        columns: ["Condition", "Why relaxed"],
+        rows: [
+          ["Price > 50-DMA", "Short-term trend only — long-term uptrend rare in pre-commercial names"],
+          ["200-DMA slope rising", "Still useful — flat or down 200-DMA = no thesis confirmation"],
+          ["MACD histogram > 0", "Short-term momentum check"],
+          ["Price within 50% of 52-wk high", "Looser proximity (vs 25%) — quantum/frontier names trade wider"],
+        ],
+        footnote: "Even relaxed, Venture names often fail Gate 3 — that's expected. If a Venture name passes ALL gates, that's a real signal.",
+      },
+    ],
+    faqs: [
+      { q: "Where's the IBD RS Rating (Minervini's original condition 7)?", a: "Not in Yahoo. Approximated by RSI(14) in 50-80 — slightly looser but captures the spirit (in-trend momentum, not exhausted)." },
+      { q: "Why 6 of 8 to pass and not all 8?", a: "Minervini's published threshold is 'most conditions' — 6/8 = 75% confirms Stage 2 while tolerating one noisy indicator (often C5 right after a deep correction)." },
+    ],
+    related: ["screener-confidence", "screener-tags"],
+  },
+  {
+    id: "screener-confidence",
+    title: "Confidence score (0-100)",
+    oneLiner: "Single number combining all 3 gates + data quality + market regime.",
+    whatItIs:
+      "A deterministic 0-100 score: Gate 1 (0-40) + Gate 2 (0-25) + Gate 3 (0-20) + data quality (0-10) + market regime (−5 to +5). Mapped to bands: High ≥75, Medium 55-74, Low 35-54, Watch-only <35. In SPY correction regime, every ticker is forced to Watch-only regardless of total.",
+    whyItMatters:
+      "Comparing two names by 3 separate gate passes is hard. The single number lets you sort the watchlist by 'how much of the rules-based case does this name have right now', and the band gives you a quick action prior. The regime forcing rule encodes the rule 'in a confirmed correction, all new buys are deferred'.",
+    howToRead: [
+      "Total (0-100): displayed in the ticker row next to the band badge.",
+      "Components in the drill-down: Fundamentals / Moat / Trend / Data quality / Regime — every contribution is shown.",
+      "Data quality (0-10): starts at 10, loses 2 pts per missing required Yahoo field (revenueGrowth, grossMargins, FCF, recommendationMean, institutionsPercentHeld, marketCap), loses 2 more if no 200-day price history.",
+      "Regime (±5): +5 rally, +3 neutral, 0 pullback, −5 correction. Reflects 'is now the time to be adding any risk'.",
+      "Caveats: small italics under the components — tells you why the score may be misleading (thin coverage, missing fields, regime risk).",
+    ],
+    referenceTables: [
+      {
+        title: "Confidence bands",
+        columns: ["Band", "Total range", "Suggested action"],
+        rows: [
+          ["High",       "≥ 75",   "Strong watchlist candidate. Still apply position size + tranche discipline."],
+          ["Medium",     "55–74",  "Promising but not all-3-gates pristine. Read the drill-down to see what's missing."],
+          ["Low",        "35–54",  "Either a fundamentals miss or weak trend. Revisit when conditions improve."],
+          ["Watch only", "< 35 OR SPY correction", "Don't act. Track for thesis-improvement or regime change."],
+        ],
+        footnote: "Forced to Watch-only during SPY corrections regardless of the underlying score — discipline rule, not a data issue.",
+      },
+    ],
+    faqs: [
+      { q: "Why am I seeing High but with caveats?", a: "Score is high because the gates passed, but data quality or coverage is weak. Trust the band less when caveats list 'thin analyst coverage' or 'fields missing'." },
+      { q: "Can I override the band?", a: "Not yet — manual overrides are planned for v2. For now, use the drill-down to make your own call and ignore the band." },
+    ],
+    related: ["screener-gate-fundamentals", "screener-gate-moat", "screener-gate-trend", "screener-tranches"],
+  },
+  {
+    id: "screener-tranches",
+    title: "Tranche splits (advisory)",
+    oneLiner: "Tag-aware staged-buy guidance — tighter staging for higher-uncertainty names.",
+    whatItIs:
+      "A suggested split for deploying capital into a position across multiple entries, varying by conviction tier. Shown in the rightmost column of the ranked watchlist.",
+    whyItMatters:
+      "Staging entries reduces single-day execution risk and gives you optionality to add on confirmation or skip on thesis break. Higher-uncertainty names (Venture) get more even staging because the chance of being wrong on entry timing is higher; high-conviction Core names can take a bigger initial bite.",
+    howToRead: [
+      "Core 50/25/25: deploy 50% at initial signal, 25% on retest of breakout level, 25% on continuation breakout.",
+      "Emerging 40/30/30: more cautious initial — 40% first, then two equal adds on confirmation.",
+      "Venture 33/33/33: equal thirds — never put majority in until milestones (e.g. quantum hardware deliverables) are met.",
+      "These are guidelines, not enforced. The screener doesn't execute trades or track tranches like the ETF / Stock dashboards do.",
+    ],
+    related: ["screener-tags", "screener-confidence"],
+  },
 ];
 
 export function findSection(id: string): HelpSection | undefined {

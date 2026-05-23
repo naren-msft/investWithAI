@@ -1,11 +1,15 @@
 import { Check, X } from "lucide-react";
+import { HelpLink } from "@/components/ui/HelpLink";
 import type { GateResult, ScreenerRow } from "@/lib/screener/types";
 
-function GateBlock({ title, gate }: { title: string; gate: GateResult }) {
+function GateBlock({ title, gate, helpSection }: { title: string; gate: GateResult; helpSection?: string }) {
   return (
     <div className="rounded-lg border border-line bg-surface-2/40 p-3">
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold text-ink">{title}</h4>
+        <div className="flex items-center gap-1">
+          <h4 className="text-xs font-semibold text-ink">{title}</h4>
+          {helpSection && <HelpLink section={helpSection} />}
+        </div>
         <span className="text-xs font-mono tabular-nums">
           {gate.score.toFixed(1)} / {gate.maxScore}
         </span>
@@ -30,13 +34,16 @@ export function GateBreakdown({ row }: { row: ScreenerRow }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <GateBlock title="Gate 1 — Fundamentals" gate={row.gate1} />
-        <GateBlock title="Gate 2 — Moat & Positioning" gate={row.gate2} />
-        <GateBlock title="Gate 3 — Market Confirmation" gate={row.gate3} />
+        <GateBlock title="Gate 1 — Fundamentals" gate={row.gate1} helpSection="screener-gate-fundamentals" />
+        <GateBlock title="Gate 2 — Moat & Positioning" gate={row.gate2} helpSection="screener-gate-moat" />
+        <GateBlock title="Gate 3 — Market Confirmation" gate={row.gate3} helpSection="screener-gate-trend" />
       </div>
 
       <div className="rounded-lg border border-line bg-surface-2/40 p-3">
-        <h4 className="text-xs font-semibold text-ink mb-2">Confidence breakdown</h4>
+        <div className="flex items-center gap-1 mb-2">
+          <h4 className="text-xs font-semibold text-ink">Confidence breakdown</h4>
+          <HelpLink section="screener-confidence" />
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
           <Component label="Fundamentals" value={row.confidence.components.fundamentals} max={40} />
           <Component label="Moat" value={row.confidence.components.moat} max={25} />

@@ -2,6 +2,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { HelpLink } from "@/components/ui/HelpLink";
 import { AlertTriangle } from "lucide-react";
 import { runScreener } from "@/lib/screener";
 import { DisclosureBanner } from "@/components/screener/DisclosureBanner";
@@ -45,7 +46,10 @@ export default async function ScreenerPage() {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-ink">Early-Trend Stock Screener</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-xl font-semibold text-ink">Early-Trend Stock Screener</h1>
+              <HelpLink section="screener-overview" />
+            </div>
             <p className="text-xs subtle mt-0.5">
               {total} tickers across {data.themes.length} secular themes ·
               evaluated {new Date(data.asOf).toLocaleString()}
@@ -61,6 +65,7 @@ export default async function ScreenerPage() {
 
       <CollapsibleCard
         storageKey="card:screener-themes"
+        helpSection="screener-themes"
         title="Theme map"
         subtitle="9 secular themes — pass counts and conviction-tier distribution"
         summary={
@@ -74,6 +79,7 @@ export default async function ScreenerPage() {
 
       <CollapsibleCard
         storageKey="card:screener-ranked"
+        helpSection="screener-confidence"
         title="Ranked watchlist"
         subtitle="Sorted by confidence score. Click any row for the gate breakdown."
         summary={<p className="text-xs subtle">{rows1Line(data.rows.slice(0, 8))}</p>}
@@ -83,6 +89,7 @@ export default async function ScreenerPage() {
 
       <CollapsibleCard
         storageKey="card:screener-methodology"
+        helpSection="screener-overview"
         title="Methodology"
         subtitle="3-gate pipeline, confidence scoring, tranche splits"
       >
