@@ -1,12 +1,22 @@
-# InvestWithAI — ETF Portfolio Dashboard
+# InvestWithAI — ETF & Stocks Portfolio Dashboard
 
-A multi-agent ETF allocation dashboard that operationalizes a staged-deployment investment plan for a brokerage account (Fidelity deep links included). Live Yahoo Finance data, 5 cooperating agents, phased capital deployment with hard caps, and full execution-loop tracking.
+A multi-agent allocation dashboard that operationalizes a staged-deployment investment plan across **two portfolios** — an **ETF** book (broad-market core) and a **Stocks** book (AI / semis / quantum themes). Live Yahoo Finance data, 5 cooperating agents per book, phased capital deployment with hard caps, full execution-loop tracking, broker deep links (Fidelity, Robinhood, Charles Schwab), and a research overlay that includes an automated **Elliott Wave Invalidation Watch**.
 
 > **Educational / demo project — not investment advice.** The capital figures, tickers, and allocation in `config/portfolio.ts` are an **example only**; edit them for your own situation. ETFs involve risk including possible loss of principal. No warranty of any kind.
 
+## Two dashboards
+
+| Route        | Universe                                                                                  | Capital control                                 |
+|--------------|-------------------------------------------------------------------------------------------|-------------------------------------------------|
+| `/`          | ETFs — 11 funds, blended ~0.22% ER, broad market exposure                                  | Hero card "Edit sizing"                          |
+| `/stocks`    | 19 single stocks — NVDA, TSM, AVGO, ASML, MU, VRT, RBRK, CRWV, AAOI, BE, IONQ, RGTI, QBTS, INDI, QNC, LAES, BTQ, ARQQ, ZENA | "Stocks Portfolio · Fidelity" capital editor (propagates to every card) |
+| `/help`      | Every section explained — what it does, why it exists, how to read it, FAQs, reference tables, floating "back to top" button | —                                                |
+
+Both dashboards share the same agent pipeline (`lib/agents/`) parameterized by portfolio config. The Stocks dashboard adds tier-aware sizing (**core / growth / speculative**), a dividend tracker, risk profile card (both collapsible), and the Elliott Wave Invalidation Watch.
+
 ## What it does
 
-- Pulls **live quotes and 9-month price history** for every ETF in your universe (no API key required).
+- Pulls **live quotes and 9-month price history** for every symbol in your universe (no API key required).
 - Runs a **5-agent pipeline** on every page load:
   1. **PortfolioStateAgent** — drift vs. target weights from your executions log
   2. **AllocationStrategyAgent** — `effectiveWeight = max(0, drift%) × regimeMultiplier`, normalized
@@ -15,8 +25,33 @@ A multi-agent ETF allocation dashboard that operationalizes a staged-deployment 
   5. **ExecutionDecisionAgent** — turns the above into share-level BUY tickets
 - Detects **4-mode market regime** (Rally / Neutral / Pullback / Correction) from SPY SMA cross.
 - Enforces **staged deployment** with phase-level hard caps (overridable).
-- Provides **Fidelity deep links** (you sign in once, ticket pre-filled) and copy-ready order strings.
-- **Records your real executions** in `data/executions.json` — drift, deployment progress, and recommendations all update in real time.
+- Provides **broker deep links** — **Fidelity** (green), **Robinhood** (black), **Charles Schwab** (blue) — and copy-ready order strings.
+- **Records your real executions** (per-portfolio) — drift, deployment progress, and recommendations all update in real time.
+- **Elliott Wave Invalidation Watch** (Stocks only) — algorithmic ZigZag + Fibonacci wave counter labels each ticker's current phase (W1/W2/.../A/B/C), computes the price that would invalidate the count, and emits a STRONG BUY / BUY / HOLD / CAUTION / AVOID signal. Hand-maintained overrides in `config/elliott-wave.json` win over the auto-counter. **Display only** — does not influence position sizing today.
+
+## Stocks portfolio (editable in `config/stocks.ts`)
+
+19 tickers across three risk tiers. Capital and buffer are edited inline from the Stocks dashboard hero (persists per browser; URL override supported).
+
+| Tier         | Tickers                                                       | Per-name cap        | Notes                                              |
+|--------------|---------------------------------------------------------------|---------------------|----------------------------------------------------|
+| Core         | NVDA, TSM, AVGO, ASML, MU                                     | Larger              | AI / semis backbone                                |
+| Growth       | VRT, RBRK, CRWV, AAOI, BE                                     | Medium              | Power / data-center / security plays               |
+| Speculative  | IONQ, RGTI, QBTS, INDI, QNC, LAES, BTQ, ARQQ, ZENA            | Smallest, tight     | Quantum / microcap — higher ZigZag pivot threshold |
+
+The Stocks pipeline reuses the ETF agent stack (`portfolioState → allocationStrategy → signalAnalysis → capitalDeployment → executionDecision`) with tier-aware caps applied during deployment.
+
+## Elliott Wave overlay (Stocks only)
+
+`lib/elliott-wave/counter.ts` implements a self-contained wave counter:
+
+1. **ZigZag pivot detector** with tier-aware thresholds (Core 7% / Growth 9% / Speculative 12%) — filters noise based on the symbol's expected volatility.
+2. **5-wave bullish impulse fitter** that enforces the three cardinal EW rules: W2 ≤ 100% of W1, W3 is never the shortest motive wave, W4 cannot overlap W1.
+3. **Fibonacci bell-curve scoring** — Gaussian fit to canonical ratios (W2 → 0.5, W3 → 1.618 × W1, W4 → 0.318 × W3, W5 → equal to W1).
+4. **Post-impulse phase classifier** — once an impulse completes, current price vs. W5/W4/W2 levels determines whether we're in W5 extension, A wave, B bounce, or C decline.
+5. **Sanity guard** — any count whose invalidation distance exceeds 60% of price is downgraded to UNKNOWN.
+
+`config/elliott-wave.json` is the manual-override file (schema documented in-file). Any ticker left with `phase: "UNKNOWN"` is auto-counted on each pipeline run. The card renders phase + 1-line description + signal badge + invalidation price + distance. **Display only**; does not feed back into position sizing today (see `/help#invalidation-watch` for the full mapping table).
 
 ## Portfolio (editable in `config/portfolio.ts`)
 
@@ -79,7 +114,8 @@ No environment variables required. First page load fetches ~9 months of daily ca
 - Next.js 14 (App Router) + TypeScript + TailwindCSS
 - `yahoo-finance2` for live quotes + chart
 - `recharts` for charts (theme-aware tooltips via CSS variables)
-- File-based execution log at `data/executions.json` (gitignored)
+- File-based execution log at `data/executions.json` and `data/stocks/executions.json` (gitignored)
+- Pure-TS Elliott Wave counter — no external services or APIs
 
 ## Project structure
 
@@ -113,11 +149,13 @@ data/executions.json # your buy log (gitignored)
 
 ## Customizing
 
-- **Different capital / buffer?** Edit `CAPITAL` and `CASH_BUFFER` in `config/portfolio.ts`.
-- **Different ETFs / weights?** Edit `TARGETS` — weights must sum to 1.0.
+- **Different capital / buffer?** Use the in-dashboard "Edit sizing" control, or edit `CAPITAL` and `CASH_BUFFER` in `config/portfolio.ts` (ETFs) / `config/stocks.ts` (Stocks).
+- **Different ETFs / weights?** Edit `TARGETS` in `config/portfolio.ts` — weights must sum to 1.0.
+- **Different stock universe?** Edit `STOCK_TARGETS` in `config/stocks.ts`. Each entry has a `tier` (`core | growth | speculative`) that drives per-name caps and ZigZag thresholds.
 - **Different tranche plan?** Edit `TRANCHES`. Each tranche has `size`, a human-readable `gate`, and a structured `triggers` object (`daysFromStart`, `spyDrawdownPct`, `trendConfirmation`) with OR semantics. Sizes should sum to `CAPITAL`.
 - **Tighter signal thresholds?** Edit `lib/agents/signalAnalysis.ts` (RSI thresholds + MACD confirmation rule).
 - **Different regime sensitivity?** Edit `lib/regime.ts` (thresholds + multipliers per mode).
+- **Override an Elliott Wave count?** Edit `config/elliott-wave.json` — set `phase` to anything other than `UNKNOWN` and the auto-counter will skip that ticker.
 
 ## Disclaimer
 
