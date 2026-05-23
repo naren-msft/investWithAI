@@ -18,6 +18,7 @@ export interface ExecutionLogProps {
   totalDeployed: number;
   phaseReady: boolean;
   lockedReason?: string;
+  apiPrefix?: string;
 }
 
 interface Execution {
@@ -30,6 +31,7 @@ interface Execution {
 }
 
 export function ExecutionLog(props: ExecutionLogProps) {
+  const apiPrefix = props.apiPrefix ?? "/api";
   const router = useRouter();
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export function ExecutionLog(props: ExecutionLogProps) {
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch("/api/executions");
+      const r = await fetch(`${apiPrefix}/executions`);
       const j = await r.json();
       setExecutions(j.executions ?? []);
     } catch (e: any) {
@@ -75,7 +77,7 @@ export function ExecutionLog(props: ExecutionLogProps) {
     e.preventDefault();
     setErr(null); setOkMsg(null); setBusy(true);
     try {
-      const r = await fetch("/api/executions", {
+      const r = await fetch(`${apiPrefix}/executions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -103,7 +105,7 @@ export function ExecutionLog(props: ExecutionLogProps) {
   async function remove(id: string) {
     setBusy(true); setErr(null); setOkMsg(null);
     try {
-      const r = await fetch(`/api/executions/${id}`, { method: "DELETE" });
+      const r = await fetch(`${apiPrefix}/executions/${id}`, { method: "DELETE" });
       if (!r.ok) throw new Error((await r.json()).error ?? "delete failed");
       await load();
       router.refresh();

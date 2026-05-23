@@ -1,6 +1,8 @@
 import { getQuotes } from "@/lib/yahoo";
 import { readExecutions, type Execution } from "@/lib/store";
 import { TARGETS } from "@/config/portfolio";
+import type { PortfolioKind } from "@/config/bundle";
+import type { TargetWeight } from "@/types";
 
 export interface TaxLot extends Execution {
   currentPrice: number;
@@ -21,24 +23,33 @@ export interface TaxReport {
     marketValue: number;
     unrealizedGain: number;
     unrealizedGainPct: number;
-    unrealizedSTCG: number;       // sum of gains (>0) where !isLongTerm
-    unrealizedLTCG: number;       // sum of gains (>0) where isLongTerm
-    unrealizedLoss: number;       // sum of losses (negative number)
-    tlhOpportunity: number;       // sum of unrealizedLoss across candidates (positive number, the $ harvestable)
-    stcgTaxEstSavingsIfHeld: number; // estimate of tax saved if STCG lots crossed to LTCG (delta in tax rate × gain)
+    unrealizedSTCG: number;
+    unrealizedLTCG: number;
+    unrealizedLoss: number;
+    tlhOpportunity: number;
+    stcgTaxEstSavingsIfHeld: number;
   };
-  topTLHCandidates: TaxLot[];      // top 5 by absolute loss
-  approachingLT: TaxLot[];          // lots within 60 days of LTCG
+  topTLHCandidates: TaxLot[];
+  approachingLT: TaxLot[];
 }
 
-const STCG_RATE = 0.37;  // top marginal
-const LTCG_RATE = 0.20;  // top LT rate
-const TLH_THRESHOLD = 100;  // $ unrealized loss threshold
+const STCG_RATE = 0.37;
+const LTCG_RATE = 0.20;
+const TLH_THRESHOLD = 100;
 
-export async function computeTaxReport(now: Date = new Date()): Promise<TaxReport> {
+export interface TaxReportOptions {
+  kind?: PortfolioKind;
+  targets?: ReadonlyArray<TargetWeight>;
+  now?: Date;
+}
+
+export async function computeTaxReport(opts: TaxReportOptions = {}): Promise<TaxReport> {
+  const kind = opts.kind ?? "etf";
+  const targets = opts.targets ?? TARGETS;
+  const now = opts.now ?? new Date();
   const [execs, quotes] = await Promise.all([
-    readExecutions(),
-    getQuotes(TARGETS.map((t) => t.ticker as string)),
+    readExecutions(kind),
+    getQuotes(targets.map((t) => t.ticker as string)),
   ]);
   const priceByTicker = new Map(quotes.map((q) => [q.ticker, q.price]));
   const nowMs = now.getTime();
@@ -65,7 +76,6 @@ export async function computeTaxReport(now: Date = new Date()): Promise<TaxRepor
     };
   });
 
-  // Aggregate totals.
   let costBasis = 0, marketValue = 0, unrealizedSTCG = 0, unrealizedLTCG = 0, unrealizedLoss = 0, tlhOpportunity = 0;
   for (const l of lots) {
     costBasis += l.costBasis;
@@ -79,7 +89,6 @@ export async function computeTaxReport(now: Date = new Date()): Promise<TaxRepor
     }
   }
   const unrealizedGain = marketValue - costBasis;
-  // If the user holds STCG lots until they cross to LT, tax rate falls by (STCG - LTCG).
   const stcgTaxEstSavingsIfHeld = unrealizedSTCG * (STCG_RATE - LTCG_RATE);
 
   const topTLHCandidates = [...lots].filter((l) => l.isTLHCandidate).sort((a, b) => a.unrealizedGain - b.unrealizedGain).slice(0, 5);

@@ -8,9 +8,11 @@ import { ArrowDownRight, ArrowUpRight, Minus, AlertCircle } from "lucide-react";
 export function AllocationTable({
   rows,
   recommendations,
+  detailBase = "/etf",
 }: {
   rows: DriftRow[];
   recommendations: BuyRecommendation[];
+  detailBase?: string;
 }) {
   const sorted = [...rows].sort((a, b) => b.targetPct - a.targetPct);
   const recByTicker = new Map(recommendations.map((r) => [r.ticker, r]));
@@ -52,7 +54,7 @@ export function AllocationTable({
               return (
                 <tr key={r.ticker} className="border-t border-line">
                   <td className="py-2 pr-3 font-medium" title={r.name}>
-                    <Link href={`/etf/${r.ticker}`} className="hover:underline">{r.ticker}</Link>
+                    <Link href={`${detailBase}/${r.ticker}`} className="hover:underline">{r.ticker}</Link>
                     {Math.abs(r.driftPct) > 0.03 && (
                       <AlertCircle className="inline-block w-3 h-3 ml-1 text-amber-700 dark:text-amber-300" />
                     )}

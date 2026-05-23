@@ -17,6 +17,9 @@ const CODE_LABEL: Record<SkippedBuyCode, string> = {
   "sector-cap-soft-zero":  "Sector soft cap shrank to < 1 share",
   "tranche-zero":          "Tranche $0 (phase locked / vol-cap)",
   "fractional-share":      "Position too small for one share",
+  "position-cap":          "Per-name position cap reached",
+  "sleeve-cap":            "Themed sleeve cap reached",
+  "insufficient-data":     "Insufficient price history",
   "other":                 "Other",
 };
 

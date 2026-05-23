@@ -18,7 +18,7 @@ interface Diff {
 const KEY_NOTIFY = "investai.notify.enabled";
 const KEY_LASTACK = "investai.changes.lastAck";
 
-export function ChangeBanner({ refreshTick }: { refreshTick?: number }) {
+export function ChangeBanner({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [diff, setDiff] = useState<Diff | null>(null);
   const [notifyOn, setNotifyOn] = useState(false);
   const [acked, setAcked] = useState(false);
@@ -29,7 +29,7 @@ export function ChangeBanner({ refreshTick }: { refreshTick?: number }) {
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/snapshots?diff=1&limit=2")
+    fetch(`${apiPrefix}/snapshots?diff=1&limit=2`)
       .then((r) => r.json())
       .then((j) => alive && setDiff(j.diff ?? null))
       .catch(() => alive && setDiff(null));

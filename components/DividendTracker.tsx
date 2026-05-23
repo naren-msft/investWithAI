@@ -25,14 +25,14 @@ interface IncomeReport {
   upcoming: IncomeRow[];
 }
 
-export function DividendTracker({ refreshTick }: { refreshTick?: number }) {
+export function DividendTracker({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [data, setData] = useState<IncomeReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetch("/api/dividends")
+    fetch(`${apiPrefix}/dividends`)
       .then((r) => r.json())
       .then((j) => alive && setData(j))
       .catch(() => alive && setData(null))

@@ -30,9 +30,12 @@ export function executionDecisionAgent(
   targets: TargetWeight[],
   overlap: OverlapResult | null,
   portfolioValue: number,
+  opts: { applySectorCap?: boolean } = {},
 ): AgentResult<ExecutionDecisionOutput> {
+  const applySectorCap = opts.applySectorCap ?? true;
   const sigByTicker = new Map(signals.map((s) => [s.ticker, s]));
   const nameByTicker = new Map(targets.map((t) => [t.ticker, t.name]));
+  const targetByTicker = new Map(targets.map((t) => [t.ticker, t]));
   const etfSectorsByTicker = new Map(
     (overlap?.etfHoldings ?? []).map((h) => [
       h.ticker,
@@ -113,21 +116,43 @@ export function executionDecisionAgent(
     const w = candidateTotal > 0 ? d.effectiveWeight / candidateTotal : 1 / candidates.length;
     const baselineDollars = Math.min(d.driftUsd, trancheBudget * w);
 
-    const cap = sectorCapMultiplier({
-      ticker: d.ticker,
-      role: d.role,
-      buyDollars: baselineDollars,
-      portfolioValue,
-      currentSectorExposures,
-      buyEtfSectors: etfSectorsByTicker.get(d.ticker) ?? [],
-    });
+    // Per-name max position cap (e.g. speculative names capped at 2-3%).
+    // Compute remaining headroom and clamp baselineDollars accordingly.
+    const tgt = targetByTicker.get(d.ticker);
+    let cappedBaseline = baselineDollars;
+    if (tgt?.maxPositionPct != null && portfolioValue > 0) {
+      const capDollars = tgt.maxPositionPct * portfolioValue;
+      const headroom = Math.max(0, capDollars - d.currentUsd);
+      if (headroom < baselineDollars) {
+        if (headroom <= 0) {
+          skipNote(
+            d.ticker,
+            "position-cap",
+            `Position already at ${(d.currentPct * 100).toFixed(2)}% ≥ cap ${(tgt.maxPositionPct * 100).toFixed(1)}%.`,
+          );
+          continue;
+        }
+        cappedBaseline = headroom;
+      }
+    }
+
+    const cap = applySectorCap
+      ? sectorCapMultiplier({
+          ticker: d.ticker,
+          role: d.role,
+          buyDollars: cappedBaseline,
+          portfolioValue,
+          currentSectorExposures,
+          buyEtfSectors: etfSectorsByTicker.get(d.ticker) ?? [],
+        })
+      : { multiplier: 1, sector: "—", currentSectorPct: 0, projectedSectorPct: 0, reason: "" };
 
     if (cap.multiplier === 0) {
       skipNote(d.ticker, "sector-cap-hard", cap.reason);
       continue;
     }
 
-    const targetDollars = baselineDollars * cap.multiplier;
+    const targetDollars = cappedBaseline * cap.multiplier;
     const shares = d.price > 0 ? Math.floor(targetDollars / d.price) : 0;
     const dollars = shares * d.price;
 
@@ -157,7 +182,7 @@ export function executionDecisionAgent(
       dayChangePct: d.dayChangePct,
       reason:
         `Effective weight ${(w * 100).toFixed(1)}% × tranche $${Math.round(trancheBudget).toLocaleString()} = ` +
-        `$${Math.round(baselineDollars).toLocaleString()} target → ${shares} sh @ $${d.price.toFixed(2)} ` +
+        `$${Math.round(cappedBaseline).toLocaleString()} target → ${shares} sh @ $${d.price.toFixed(2)} ` +
         `(signal ${sig.signal}, RSI ${Number.isFinite(sig.rsi) ? sig.rsi.toFixed(1) : "—"}).` +
         capNote,
     });

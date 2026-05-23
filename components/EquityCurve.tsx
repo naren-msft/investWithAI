@@ -32,7 +32,7 @@ interface RiskMetrics {
   daysTracked: number;
 }
 
-export function EquityCurve({ refreshTick }: { refreshTick?: number }) {
+export function EquityCurve({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [points, setPoints] = useState<Point[]>([]);
   const [metrics, setMetrics] = useState<RiskMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ export function EquityCurve({ refreshTick }: { refreshTick?: number }) {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetch("/api/equity-curve")
+    fetch(`${apiPrefix}/equity-curve`)
       .then((r) => r.json())
       .then((j) => {
         if (!alive) return;

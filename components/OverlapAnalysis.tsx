@@ -22,7 +22,7 @@ interface OverlapResult {
 
 const KEY = "investai.overlap.open";
 
-export function OverlapAnalysis({ refreshTick }: { refreshTick?: number }) {
+export function OverlapAnalysis({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [data, setData] = useState<OverlapResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export function OverlapAnalysis({ refreshTick }: { refreshTick?: number }) {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetch("/api/overlap")
+    fetch(`${apiPrefix}/overlap`)
       .then((r) => r.json())
       .then((j) => {
         if (!alive) return;

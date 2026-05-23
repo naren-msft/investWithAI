@@ -1,4 +1,5 @@
 import type { PortfolioConfig } from "@/types";
+import type { PortfolioBundle } from "./bundle";
 
 // NOTE: These figures are an EXAMPLE portfolio sizing for the demo.
 // Override at runtime via the in-app editor (Hero card) or via the CAPITAL /
@@ -143,3 +144,17 @@ export const FIDELITY_TRADE_URL = (symbol: string) =>
 
 export const FIDELITY_QUOTE_URL = (symbol: string) =>
   `https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=${encodeURIComponent(symbol)}`;
+
+// ETF portfolio bundle — wraps the constants above into the generic shape
+// consumed by runPipeline() so the same pipeline serves both ETF and Stocks.
+export const etfBundle: PortfolioBundle = {
+  kind: "etf",
+  label: "ETF Portfolio",
+  defaultCapital: DEFAULT_CAPITAL,
+  defaultCashBuffer: DEFAULT_CASH_BUFFER,
+  buildTranches,
+  base: PORTFOLIO,
+  roleToSleeve: ROLE_TO_SLEEVE,
+  sleeveLabel: SLEEVE_LABEL,
+  computeEtfOverlap: true,
+};

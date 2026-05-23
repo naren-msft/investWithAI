@@ -2,6 +2,8 @@ import YahooFinance from "yahoo-finance2";
 import { getQuotes } from "@/lib/yahoo";
 import { readExecutions, aggregateHoldings } from "@/lib/store";
 import { TARGETS } from "@/config/portfolio";
+import type { PortfolioKind } from "@/config/bundle";
+import type { TargetWeight } from "@/types";
 
 const yahooFinance = new YahooFinance();
 // @ts-ignore
@@ -9,9 +11,9 @@ yahooFinance.suppressNotices?.(["yahooSurvey", "ripHistorical"]);
 
 export interface DividendInfo {
   ticker: string;
-  trailingAnnualDividendRate: number;  // $ per share / year
-  trailingAnnualDividendYield: number; // decimal
-  exDividendDate?: string;             // YYYY-MM-DD
+  trailingAnnualDividendRate: number;
+  trailingAnnualDividendYield: number;
+  exDividendDate?: string;
   lastDividendValue?: number;
 }
 
@@ -30,14 +32,8 @@ export async function getDividend(ticker: string): Promise<DividendInfo> {
     const price = res.price ?? {};
     const currentPrice = Number(price.regularMarketPrice ?? sd.navPrice ?? 0);
 
-    // Yahoo returns several inconsistent dividend fields; prefer in order:
-    //   yield                          (decimal, most reliable for ETFs)
-    //   trailingAnnualDividendYield    (decimal)
-    //   dividendYield                  (decimal, sometimes)
     const yieldPct = Number(sd.yield ?? sd.trailingAnnualDividendYield ?? sd.dividendYield ?? 0) || 0;
 
-    // For the $/share/yr we prefer trailingAnnualDividendRate, but if it's 0
-    // and we have a yield, compute it: rate = yield × current price.
     let annualRate = Number(sd.trailingAnnualDividendRate ?? sd.dividendRate ?? 0) || 0;
     if (annualRate === 0 && yieldPct > 0 && currentPrice > 0) {
       annualRate = Number((yieldPct * currentPrice).toFixed(4));
@@ -64,8 +60,8 @@ export interface IncomeRow {
   name: string;
   role: string;
   shares: number;
-  yieldPct: number;          // decimal
-  annualRate: number;        // $/share/yr
+  yieldPct: number;
+  annualRate: number;
   projectedAnnualIncome: number;
   exDividendDate?: string;
   lastDividendValue?: number;
@@ -74,14 +70,21 @@ export interface IncomeRow {
 export interface IncomeReport {
   rows: IncomeRow[];
   totalProjectedAnnual: number;
-  blendedYield: number;          // weighted by current value
-  upcoming: IncomeRow[];         // sorted by ex-date ascending, future or recent
+  blendedYield: number;
+  upcoming: IncomeRow[];
 }
 
-export async function computeIncome(): Promise<IncomeReport> {
-  const tickers = TARGETS.map((t) => t.ticker as string);
+export interface IncomeOptions {
+  kind?: PortfolioKind;
+  targets?: ReadonlyArray<TargetWeight>;
+}
+
+export async function computeIncome(opts: IncomeOptions = {}): Promise<IncomeReport> {
+  const kind = opts.kind ?? "etf";
+  const targets = opts.targets ?? TARGETS;
+  const tickers = targets.map((t) => t.ticker as string);
   const [execs, divs, quotes] = await Promise.all([
-    readExecutions(),
+    readExecutions(kind),
     Promise.all(tickers.map(getDividend)),
     getQuotes(tickers),
   ]);
@@ -90,7 +93,7 @@ export async function computeIncome(): Promise<IncomeReport> {
   const holdings = aggregateHoldings(execs);
   const sharesByTicker = new Map(holdings.map((h) => [h.ticker, h.shares]));
 
-  const rows: IncomeRow[] = TARGETS.map((t) => {
+  const rows: IncomeRow[] = targets.map((t) => {
     const d = divByTicker.get(t.ticker) ?? { trailingAnnualDividendRate: 0, trailingAnnualDividendYield: 0 } as any;
     const shares = sharesByTicker.get(t.ticker) ?? 0;
     const projected = shares * (d.trailingAnnualDividendRate ?? 0);

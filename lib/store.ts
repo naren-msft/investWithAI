@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { dataFile, type PortfolioKind } from "@/config/bundle";
 import type { Holding, Tranche } from "@/types";
 
 export interface Execution {
@@ -12,43 +13,46 @@ export interface Execution {
   note?: string;
 }
 
-const FILE = path.join(process.cwd(), "data", "executions.json");
+function fileFor(kind: PortfolioKind): string {
+  return dataFile(kind, "executions.json");
+}
 
-async function ensureFile(): Promise<void> {
-  try { await fs.access(FILE); }
+async function ensureFile(kind: PortfolioKind): Promise<void> {
+  const f = fileFor(kind);
+  try { await fs.access(f); }
   catch {
-    await fs.mkdir(path.dirname(FILE), { recursive: true });
-    await fs.writeFile(FILE, JSON.stringify({ executions: [] }, null, 2), "utf8");
+    await fs.mkdir(path.dirname(f), { recursive: true });
+    await fs.writeFile(f, JSON.stringify({ executions: [] }, null, 2), "utf8");
   }
 }
 
-export async function readExecutions(): Promise<Execution[]> {
-  await ensureFile();
+export async function readExecutions(kind: PortfolioKind = "etf"): Promise<Execution[]> {
+  await ensureFile(kind);
   try {
-    const raw = await fs.readFile(FILE, "utf8");
+    const raw = await fs.readFile(fileFor(kind), "utf8");
     const j = JSON.parse(raw);
     return Array.isArray(j.executions) ? j.executions : [];
   } catch { return []; }
 }
 
-async function writeExecutions(execs: Execution[]): Promise<void> {
-  await ensureFile();
-  await fs.writeFile(FILE, JSON.stringify({ executions: execs }, null, 2), "utf8");
+async function writeExecutions(kind: PortfolioKind, execs: Execution[]): Promise<void> {
+  await ensureFile(kind);
+  await fs.writeFile(fileFor(kind), JSON.stringify({ executions: execs }, null, 2), "utf8");
 }
 
-export async function appendExecution(e: Omit<Execution, "id">): Promise<Execution> {
-  const list = await readExecutions();
+export async function appendExecution(e: Omit<Execution, "id">, kind: PortfolioKind = "etf"): Promise<Execution> {
+  const list = await readExecutions(kind);
   const full: Execution = { id: randomUUID(), ...e };
   list.push(full);
-  await writeExecutions(list);
+  await writeExecutions(kind, list);
   return full;
 }
 
-export async function deleteExecution(id: string): Promise<boolean> {
-  const list = await readExecutions();
+export async function deleteExecution(id: string, kind: PortfolioKind = "etf"): Promise<boolean> {
+  const list = await readExecutions(kind);
   const next = list.filter((x) => x.id !== id);
   if (next.length === list.length) return false;
-  await writeExecutions(next);
+  await writeExecutions(kind, next);
   return true;
 }
 

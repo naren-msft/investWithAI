@@ -1,15 +1,14 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-// Tiny persisted store for regime hysteresis state. One JSON object on disk;
-// rewritten on every pipeline run when the raw regime is computed. Lives
-// alongside data/executions.json (gitignored).
+// Regime hysteresis state is SPY-based and SHARED across portfolio sleeves
+// (ETF and Stocks both observe the same SPY regime). Single global file.
 
 export interface RegimeHysteresisState {
   currentRegime: string;
   pendingRegime: string | null;
   pendingDays: number;
-  lastUpdatedDate: string; // YYYY-MM-DD — used to detect missing days
+  lastUpdatedDate: string;
 }
 
 const FILE = path.join(process.cwd(), "data", "regime-state.json");

@@ -1,119 +1,69 @@
-import { MarketAwareTicker } from "@/components/MarketAwareTicker";
-import { HeroSummary } from "@/components/HeroSummary";
-import { RegimeBanner } from "@/components/RegimeBanner";
-import { BuyRecommendations } from "@/components/BuyRecommendations";
-import { AllocationTable } from "@/components/AllocationTable";
-import { AllocationDonut } from "@/components/AllocationDonut";
-import { PriceChart } from "@/components/PriceChart";
-import { DeploymentPlan } from "@/components/DeploymentPlan";
-import { AgentCards } from "@/components/AgentCards";
-import { ExecutionLog } from "@/components/ExecutionLog";
-import { FidelityPanel } from "@/components/FidelityPanel";
-import { DividendTracker } from "@/components/DividendTracker";
-import { TaxLotTracker } from "@/components/TaxLotTracker";
-import { ChangeBanner } from "@/components/ChangeBanner";
-import { OverlapAnalysis } from "@/components/OverlapAnalysis";
-import { EquityCurve } from "@/components/EquityCurve";
-import { PortfolioInsights } from "@/components/PortfolioInsights";
-import { ExposurePanel } from "@/components/ExposurePanel";
-import { RiskPanel } from "@/components/RiskPanel";
-import { UnderDeploymentSummary } from "@/components/UnderDeploymentSummary";
-import { ScenarioPanel } from "@/components/ScenarioPanel";
-import { NextBestAllocation } from "@/components/NextBestAllocation";
-import { runPipeline } from "@/lib/agents";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { AlertTriangle } from "lucide-react";
+import { LineChart, TrendingUp, ArrowRight } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const dynamic = "force-static";
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams?: { capital?: string; buffer?: string };
-}) {
-  const capitalParam = Number(searchParams?.capital);
-  const bufferParam = Number(searchParams?.buffer);
-  const overrides = {
-    capital: Number.isFinite(capitalParam) && capitalParam > 0 ? capitalParam : undefined,
-    cashBuffer: Number.isFinite(bufferParam) && bufferParam >= 0 ? bufferParam : undefined,
-  };
-
-  let data;
-  try {
-    data = await runPipeline(overrides);
-  } catch (e: any) {
-    return (
-      <main className="max-w-6xl mx-auto p-6">
-        <Card className="border-red-500/30">
-          <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
-            <AlertTriangle className="w-4 h-4" />
-            <h2 className="font-semibold">Failed to load market data</h2>
-          </div>
-          <p className="text-sm subtle mt-2">{String(e?.message ?? e)}</p>
-          <p className="text-xs subtle mt-2">
-            This dashboard fetches live data from Yahoo Finance. Check your internet connection, then refresh.
-          </p>
-        </Card>
-      </main>
-    );
-  }
-
-  const tickers = data.drift.map((d) => d.ticker);
-
+export default function Home() {
   return (
-    <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
-      <MarketAwareTicker recs={data.recommendations} asOf={data.asOf} />
-      <ChangeBanner refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
-      <HeroSummary data={data} />
-      <RegimeBanner regime={data.regime} />
-      <PortfolioInsights data={data} />
-      <UnderDeploymentSummary data={data} />
-      <NextBestAllocation data={data} />
-      <ExposurePanel data={data} />
-      <RiskPanel data={data} />
-      <ScenarioPanel data={data} />
-      <OverlapAnalysis refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
-      <EquityCurve refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
-      <DividendTracker refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
-      <TaxLotTracker  refreshTick={Math.floor(Date.parse(data.asOf) / 1000)} />
-      <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} skipped={data.skippedBuys} phaseReady={data.phaseReady} lockedReason={data.phaseLockedReason} />
-
-      <AllocationTable rows={data.drift} recommendations={data.recommendations} />
-      <ExecutionLog
-        tickers={data.drift.map((d) => {
-          const rec = data.recommendations.find((r) => r.ticker === d.ticker);
-          return { ticker: d.ticker, price: d.price, name: d.name, recShares: rec?.shares, recDollars: rec?.dollars };
-        })}
-        currentPhase={data.currentTranche.phase}
-        phaseSize={data.currentTranche.size}
-        phaseDeployed={data.currentPhaseDeployedUsd}
-        phaseRemaining={data.currentPhaseRemainingUsd}
-        capital={data.capital}
-        totalDeployed={data.deployedUsd}
-        phaseReady={data.phaseReady}
-        lockedReason={data.phaseLockedReason}
-      />
-      <AllocationDonut rows={data.drift} />
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <PriceChart tickers={tickers} />
-        <DeploymentPlan
-          gates={data.phaseGates}
-          anchor={data.phaseAnchor}
-          currentBudget={data.trancheBudget}
-          regimeKind={data.regime.kind}
-        />
+    <main className="max-w-5xl mx-auto p-6 md:p-10">
+      <div className="text-center mb-10">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">InvestWithAI</h1>
+        <p className="subtle mt-3 text-base md:text-lg">
+          Multi-agent portfolio management with live market data, regime detection, and tiered tranche deployment.
+        </p>
+        <p className="text-xs subtle mt-2">Pick a portfolio to open its dashboard.</p>
       </div>
 
-      <FidelityPanel recs={data.recommendations} />
-      <AgentCards agents={data.agents} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Link href="/etf" className="group">
+          <Card className="h-full transition-shadow group-hover:shadow-lg group-hover:border-emerald-500/40">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                <LineChart className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold">ETF Portfolio</h2>
+                <p className="subtle text-xs">Diversified across 9 sleeves</p>
+              </div>
+            </div>
+            <ul className="mt-4 space-y-1.5 text-sm text-ink/80">
+              <li>• 5-tranche phased deployment ($35K capital, $3K buffer)</li>
+              <li>• Sector hard/soft caps + ETF top-holdings overlap</li>
+              <li>• Bond ballast + international + commodity sleeves</li>
+            </ul>
+            <div className="mt-5 inline-flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+              Open ETF dashboard <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </div>
+          </Card>
+        </Link>
 
-      <footer className="mt-6 p-4 text-xs subtle border-t border-line">
+        <Link href="/stocks" className="group">
+          <Card className="h-full transition-shadow group-hover:shadow-lg group-hover:border-emerald-500/40">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold">Stock Portfolio</h2>
+                <p className="subtle text-xs">AI infra · quantum · speculative</p>
+              </div>
+            </div>
+            <ul className="mt-4 space-y-1.5 text-sm text-ink/80">
+              <li>• 19 individual stocks across 3 conviction tiers ($50K / $10K buffer)</li>
+              <li>• Tier-aware RSI/MACD signals + per-name position caps</li>
+              <li>• Themed sleeves: AI semis, AI power, quantum, quantum-security</li>
+            </ul>
+            <div className="mt-5 inline-flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+              Open Stock dashboard <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </div>
+          </Card>
+        </Link>
+      </div>
+
+      <footer className="mt-12 p-4 text-xs subtle border-t border-line text-center">
         <strong className="text-ink/80">Educational use only — not investment advice.</strong>{" "}
-        Live market data from Yahoo Finance via <code className="kbd">yahoo-finance2</code>. Past performance does
-        not guarantee future results. ETFs involve risk, including possible loss of principal. Bond and energy
-        ETFs (FBND, FENY) have materially different volatility profiles than broad-market equity ETFs.
+        Live market data from Yahoo Finance. Past performance does not guarantee future results.
       </footer>
     </main>
   );

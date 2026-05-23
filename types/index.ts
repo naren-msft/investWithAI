@@ -1,12 +1,18 @@
 export type Ticker = string;
 
+export type ConvictionTier = "core" | "growth" | "speculative";
+
 export interface TargetWeight {
   ticker: Ticker;
   name: string;
   weight: number;
-  expense: number;   // expense ratio (decimal, e.g. 0.0015 = 0.15%)
+  expense: number;   // expense ratio (decimal, e.g. 0.0015 = 0.15%) — 0 for individual stocks
   role: string;      // short role/theme label
   note?: string;
+  // Stocks portfolio extensions (optional — ETFs leave these undefined which
+  // is treated as "core" tier with no per-name position cap).
+  tier?: ConvictionTier;
+  maxPositionPct?: number;     // hard cap on this name's current weight (decimal, e.g. 0.02 = 2%)
 }
 
 export interface Holding {
@@ -167,6 +173,9 @@ export type SkippedBuyCode =
   | "sector-cap-soft-zero"
   | "tranche-zero"
   | "fractional-share"
+  | "position-cap"
+  | "sleeve-cap"
+  | "insufficient-data"
   | "other";
 
 export interface SkippedBuy {

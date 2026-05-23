@@ -18,6 +18,9 @@ const UNLOCK_CONDITION: Record<SkippedBuyCode, string> = {
   "sector-cap-soft-zero":  "if sector exposure falls below 25% or tranche grows",
   "tranche-zero":          "when the next phase unlocks (vol gate clears / drawdown trigger fires)",
   "fractional-share":      "if the tranche grows or the share price falls",
+  "position-cap":          "if the per-name position cap is raised or other holdings grow the denominator",
+  "sleeve-cap":            "if sleeve exposure falls (other names in the sleeve sell / rebalance)",
+  "insufficient-data":     "once the ticker has enough price history for indicators",
   "other":                 "when the underlying condition resolves",
 };
 

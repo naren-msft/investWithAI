@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { dataFile, type PortfolioKind } from "@/config/bundle";
 import type { BuyRecommendation, PipelineResult, RegimeKind, Signal } from "@/types";
 
 export interface Snapshot {
@@ -14,30 +15,34 @@ export interface Snapshot {
   topRecs: { ticker: string; dollars: number; shares: number; signal: Signal }[];
 }
 
-const FILE = path.join(process.cwd(), "data", "snapshots.json");
-const MIN_INTERVAL_MS = 5 * 60 * 1000;   // throttle: at most one snapshot per 5 minutes
-const MAX_KEEP = 2000;                    // retain at most 2000 entries (~7 days at 5m cadence)
+function fileFor(kind: PortfolioKind): string {
+  return dataFile(kind, "snapshots.json");
+}
 
-async function ensureFile(): Promise<void> {
-  try { await fs.access(FILE); }
+const MIN_INTERVAL_MS = 5 * 60 * 1000;
+const MAX_KEEP = 2000;
+
+async function ensureFile(kind: PortfolioKind): Promise<void> {
+  const f = fileFor(kind);
+  try { await fs.access(f); }
   catch {
-    await fs.mkdir(path.dirname(FILE), { recursive: true });
-    await fs.writeFile(FILE, JSON.stringify({ snapshots: [] }, null, 2), "utf8");
+    await fs.mkdir(path.dirname(f), { recursive: true });
+    await fs.writeFile(f, JSON.stringify({ snapshots: [] }, null, 2), "utf8");
   }
 }
 
-export async function readSnapshots(): Promise<Snapshot[]> {
-  await ensureFile();
+export async function readSnapshots(kind: PortfolioKind = "etf"): Promise<Snapshot[]> {
+  await ensureFile(kind);
   try {
-    const raw = await fs.readFile(FILE, "utf8");
+    const raw = await fs.readFile(fileFor(kind), "utf8");
     const j = JSON.parse(raw);
     return Array.isArray(j.snapshots) ? j.snapshots : [];
   } catch { return []; }
 }
 
-async function writeSnapshots(list: Snapshot[]): Promise<void> {
-  await ensureFile();
-  await fs.writeFile(FILE, JSON.stringify({ snapshots: list }, null, 2), "utf8");
+async function writeSnapshots(kind: PortfolioKind, list: Snapshot[]): Promise<void> {
+  await ensureFile(kind);
+  await fs.writeFile(fileFor(kind), JSON.stringify({ snapshots: list }, null, 2), "utf8");
 }
 
 export function pipelineToSnapshot(p: PipelineResult): Snapshot {
@@ -56,20 +61,16 @@ export function pipelineToSnapshot(p: PipelineResult): Snapshot {
   };
 }
 
-// Append a snapshot only if the last one is older than MIN_INTERVAL_MS. Returns
-// the snapshot that was actually persisted (could be the previous one if
-// throttled). Best-effort: any IO failure is swallowed so the pipeline never
-// fails because of snapshot persistence.
-export async function appendSnapshotIfStale(p: PipelineResult): Promise<Snapshot | null> {
+export async function appendSnapshotIfStale(p: PipelineResult, kind: PortfolioKind = "etf"): Promise<Snapshot | null> {
   try {
-    const list = await readSnapshots();
+    const list = await readSnapshots(kind);
     const last = list[list.length - 1];
     const now = new Date(p.asOf).getTime();
     if (last && now - new Date(last.asOf).getTime() < MIN_INTERVAL_MS) return null;
     const snap = pipelineToSnapshot(p);
     list.push(snap);
     if (list.length > MAX_KEEP) list.splice(0, list.length - MAX_KEEP);
-    await writeSnapshots(list);
+    await writeSnapshots(kind, list);
     return snap;
   } catch { return null; }
 }

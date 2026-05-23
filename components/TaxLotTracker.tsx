@@ -35,14 +35,14 @@ interface TaxReport {
   approachingLT: TaxLot[];
 }
 
-export function TaxLotTracker({ refreshTick }: { refreshTick?: number }) {
+export function TaxLotTracker({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [data, setData] = useState<TaxReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetch("/api/tax-lots")
+    fetch(`${apiPrefix}/tax-lots`)
       .then((r) => r.json())
       .then((j) => alive && setData(j))
       .catch(() => alive && setData(null))

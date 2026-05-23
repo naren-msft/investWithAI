@@ -8,7 +8,7 @@ import { CapitalEditor } from "@/components/CapitalEditor";
 import { HelpCircle } from "lucide-react";
 import { fmtUsd } from "@/lib/format";
 
-export function HeroSummary({ data }: { data: PipelineResult }) {
+export function HeroSummary({ data, title = "ETF Portfolio · Fidelity", subtitle }: { data: PipelineResult; title?: string; subtitle?: string }) {
   const deployable = Math.max(0, data.capital - data.cashBuffer);
   const availableToDeploy = Math.max(0, data.cashUsd - data.cashBuffer);
   const deployedPct = deployable > 0 ? Math.min(100, (data.deployedUsd / deployable) * 100) : 0;
@@ -26,9 +26,9 @@ export function HeroSummary({ data }: { data: PipelineResult }) {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <div className="text-xs subtle uppercase tracking-wider">Dashboard</div>
-          <h1 className="text-2xl font-semibold tracking-tight">ETF Portfolio · Fidelity</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <p className="text-sm subtle mt-1">
-            Multi-agent allocation across {data.drift.length} ETFs, staged deployment, live RSI/MACD signals.
+            {subtitle ?? `Multi-agent allocation across ${data.drift.length} ETFs, staged deployment, live RSI/MACD signals.`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">

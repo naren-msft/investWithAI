@@ -20,7 +20,7 @@ export default async function EtfPage({ params }: { params: { ticker: string } }
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
-      <Link href="/" className="inline-flex items-center gap-1 text-sm subtle hover:text-ink">
+      <Link href="/etf" className="inline-flex items-center gap-1 text-sm subtle hover:text-ink">
         <ArrowLeft className="w-3.5 h-3.5" /> Back to dashboard
       </Link>
 

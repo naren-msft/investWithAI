@@ -1,4 +1,5 @@
-import { PORTFOLIO, TRANCHES, buildTranches, DEFAULT_CAPITAL, DEFAULT_CASH_BUFFER } from "@/config/portfolio";
+import { etfBundle } from "@/config/portfolio";
+import type { PortfolioBundle } from "@/config/bundle";
 import { getQuotes, getHistory } from "@/lib/yahoo";
 import { detectRegime } from "@/lib/regime";
 import { aggregateHoldings, readExecutions, totalDeployed } from "@/lib/store";
@@ -31,36 +32,38 @@ async function fetchVixSafe(): Promise<number> {
 }
 
 export interface RunPipelineOptions {
-  /** Override total capital (USD). Defaults to env-configured CAPITAL. */
+  /** Override total capital (USD). Defaults to the bundle's default. */
   capital?: number;
-  /** Override reserved cash buffer (USD). Defaults to env-configured CASH_BUFFER. */
+  /** Override reserved cash buffer (USD). Defaults to the bundle's default. */
   cashBuffer?: number;
+  /** Portfolio bundle to run. Defaults to the ETF bundle for back-compat. */
+  bundle?: PortfolioBundle;
 }
 
 export async function runPipeline(opts: RunPipelineOptions = {}): Promise<PipelineResult> {
+  const bundle = opts.bundle ?? etfBundle;
+
   // Resolve effective sizing (with safe clamping).
   const capital = Number.isFinite(opts.capital) && opts.capital! > 0
     ? Math.round(opts.capital!)
-    : DEFAULT_CAPITAL;
+    : bundle.defaultCapital;
   const cashBuffer = Number.isFinite(opts.cashBuffer) && opts.cashBuffer! >= 0
     ? Math.min(Math.round(opts.cashBuffer!), capital)
-    : Math.min(DEFAULT_CASH_BUFFER, capital);
+    : Math.min(bundle.defaultCashBuffer, capital);
 
-  const overridden = capital !== DEFAULT_CAPITAL || cashBuffer !== DEFAULT_CASH_BUFFER;
-  const scaledTranches = overridden ? buildTranches(capital, cashBuffer) : TRANCHES;
-
-  const baseCfg = overridden ? { ...PORTFOLIO, capital, cashBuffer } : PORTFOLIO;
+  const scaledTranches = bundle.buildTranches(capital, cashBuffer);
+  const baseCfg = { ...bundle.base, capital, cashBuffer, tranches: scaledTranches };
   const tickers = baseCfg.targets.map((t) => t.ticker);
 
   const [quotes, regime, signalsAgent, executions, spyCandles, betaResult, ddStats, overlap, vix] = await Promise.all([
     getQuotes(tickers),
     detectRegime(),
     signalAnalysisAgent([...baseCfg.targets]),
-    readExecutions(),
+    readExecutions(bundle.kind),
     getHistory("SPY", 12),
     computePortfolioBeta(baseCfg.targets.map((t) => ({ ticker: t.ticker, weight: t.weight }))),
     Promise.all(tickers.map((t) => computeEtfDrawdownStats(t))),
-    computeOverlap(baseCfg.targets).catch(() => null),
+    bundle.computeEtfOverlap ? computeOverlap(baseCfg.targets).catch(() => null) : Promise.resolve(null),
     fetchVixSafe(),
   ]);
 
@@ -130,6 +133,7 @@ export async function runPipeline(opts: RunPipelineOptions = {}): Promise<Pipeli
     [...cfg.targets],
     overlap,
     stateAgent.output.portfolioValue,
+    { applySectorCap: bundle.computeEtfOverlap },
   );
 
   const totalRecommendedUsd = execAgent.output.recommendations.reduce((s, r) => s + r.dollars, 0);
@@ -191,7 +195,7 @@ export async function runPipeline(opts: RunPipelineOptions = {}): Promise<Pipeli
     agents: [stateAgent, allocAgent, signalsAgent, deployAgent, execAgent],
   };
 
-  appendSnapshotIfStale(result).catch(() => {});
+  appendSnapshotIfStale(result, bundle.kind).catch(() => {});
 
   return result;
 }
