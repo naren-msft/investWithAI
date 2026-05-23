@@ -31,17 +31,25 @@ interface Report {
   coverage: { total: number; counted: number; breached: number; nearBreach: number; autoCount: number; manualCount: number };
 }
 
-const PHASE_TONE: Record<EwPhase, { label: string; variant: "success" | "info" | "warn" | "danger" | "default" }> = {
-  "W1":      { label: "W1",       variant: "info" },
-  "W2":      { label: "W2",       variant: "warn" },
-  "W3":      { label: "W3",       variant: "success" },
-  "W3-of-3": { label: "W3 of W3", variant: "success" },
-  "W4":      { label: "W4",       variant: "warn" },
-  "W5":      { label: "W5",       variant: "info" },
-  "A":       { label: "A",        variant: "danger" },
-  "B":       { label: "B",        variant: "danger" },
-  "C":       { label: "C",        variant: "danger" },
-  "UNKNOWN": { label: "—",        variant: "default" },
+type SignalKind = "BUY" | "STRONG BUY" | "HOLD" | "CAUTION" | "AVOID" | "—";
+
+const PHASE_META: Record<EwPhase, {
+  label: string;
+  variant: "success" | "info" | "warn" | "danger" | "default";
+  description: string;
+  signal: SignalKind;
+  signalVariant: "success" | "info" | "warn" | "danger" | "default";
+}> = {
+  "W1":      { label: "W1",       variant: "info",    description: "Initial impulse up — fresh trend, but unconfirmed",   signal: "HOLD",        signalVariant: "info" },
+  "W2":      { label: "W2",       variant: "warn",    description: "Pullback after W1 — classic buy zone",                signal: "BUY",         signalVariant: "success" },
+  "W3":      { label: "W3",       variant: "success", description: "Strongest motive wave — trend extension",             signal: "BUY",         signalVariant: "success" },
+  "W3-of-3": { label: "W3 of W3", variant: "success", description: "Acceleration phase — highest-conviction trend leg",    signal: "STRONG BUY",  signalVariant: "success" },
+  "W4":      { label: "W4",       variant: "warn",    description: "Consolidation after W3 — usually shallow, sideways",  signal: "HOLD",        signalVariant: "warn" },
+  "W5":      { label: "W5",       variant: "info",    description: "Final push — top forming, often divergent",           signal: "CAUTION",     signalVariant: "warn" },
+  "A":       { label: "A",        variant: "danger",  description: "First correction down — trend may be ending",          signal: "AVOID",       signalVariant: "danger" },
+  "B":       { label: "B",        variant: "danger",  description: "Counter-trend rally inside correction — don't chase", signal: "AVOID",       signalVariant: "danger" },
+  "C":       { label: "C",        variant: "danger",  description: "Capitulation low — potential bottom but knife-catch", signal: "HOLD",        signalVariant: "warn" },
+  "UNKNOWN": { label: "—",        variant: "default", description: "No clear wave structure — auto-counter abstained",    signal: "—",           signalVariant: "default" },
 };
 
 function fmtPrice(n: number | null): string {
@@ -151,7 +159,7 @@ export function InvalidationWatch({
             <div key={`b-${r.ticker}`} className="flex items-center gap-2 text-xs bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 rounded-md px-2 py-1.5">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               <strong className="font-mono">{r.ticker}</strong>
-              <span className="opacity-80">{PHASE_TONE[r.phase].label} count broken</span>
+              <span className="opacity-80">{PHASE_META[r.phase].label} count broken</span>
               <span className="ml-auto font-mono">
                 {fmtPrice(r.price)} vs invalidation {fmtPrice(r.invalidationPrice)} ({fmtPct(r.distancePct)})
               </span>
@@ -160,7 +168,7 @@ export function InvalidationWatch({
           {nearMisses.map((r) => (
             <div key={`n-${r.ticker}`} className="flex items-center gap-2 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 rounded-md px-2 py-1.5">
               <strong className="font-mono">{r.ticker}</strong>
-              <span className="opacity-80">{PHASE_TONE[r.phase].label} near invalidation</span>
+              <span className="opacity-80">{PHASE_META[r.phase].label} near invalidation</span>
               <span className="ml-auto font-mono">
                 {fmtPrice(r.price)} → invalidation {fmtPrice(r.invalidationPrice)} ({fmtPct(r.distancePct)})
               </span>
@@ -184,6 +192,7 @@ export function InvalidationWatch({
                   <tr className="text-left subtle text-[11px] uppercase tracking-wider">
                     <th className="py-2 pr-3">Ticker</th>
                     <th className="py-2 pr-3">Phase</th>
+                    <th className="py-2 pr-3">Signal</th>
                     <th className="py-2 pr-3 text-right">Price</th>
                     <th className="py-2 pr-3 text-right">Invalidation</th>
                     <th className="py-2 pr-3 text-right">Distance</th>
@@ -194,7 +203,7 @@ export function InvalidationWatch({
                 </thead>
                 <tbody>
                   {sortedRows.map((r) => {
-                    const tone = PHASE_TONE[r.phase];
+                    const meta = PHASE_META[r.phase];
                     const rowCls = r.isBreached
                       ? "border-t border-red-500/30 bg-red-500/5"
                       : r.isNearBreach
@@ -202,18 +211,28 @@ export function InvalidationWatch({
                       : "border-t border-line";
                     return (
                       <tr key={r.ticker} className={rowCls}>
-                        <td className="py-2 pr-3 font-medium font-mono">{r.ticker}</td>
-                        <td className="py-2 pr-3">
-                          <Badge variant={tone.variant}>{tone.label}</Badge>
+                        <td className="py-2 pr-3 font-medium font-mono align-top">{r.ticker}</td>
+                        <td className="py-2 pr-3 align-top">
+                          <div className="flex flex-col gap-0.5">
+                            <Badge variant={meta.variant}>{meta.label}</Badge>
+                            <span className="text-[11px] subtle leading-snug max-w-[18ch]">{meta.description}</span>
+                          </div>
                         </td>
-                        <td className="py-2 pr-3 text-right font-mono">{fmtPrice(r.price)}</td>
-                        <td className="py-2 pr-3 text-right font-mono">{fmtPrice(r.invalidationPrice)}</td>
-                        <td className={`py-2 pr-3 text-right font-mono ${r.isBreached ? "text-red-600 dark:text-red-300" : r.isNearBreach ? "text-amber-700 dark:text-amber-300" : ""}`}>
+                        <td className="py-2 pr-3 align-top">
+                          {meta.signal === "—" ? (
+                            <span className="subtle">—</span>
+                          ) : (
+                            <Badge variant={meta.signalVariant}>{meta.signal}</Badge>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-right font-mono align-top">{fmtPrice(r.price)}</td>
+                        <td className="py-2 pr-3 text-right font-mono align-top">{fmtPrice(r.invalidationPrice)}</td>
+                        <td className={`py-2 pr-3 text-right font-mono align-top ${r.isBreached ? "text-red-600 dark:text-red-300" : r.isNearBreach ? "text-amber-700 dark:text-amber-300" : ""}`}>
                           {fmtPct(r.distancePct)}
                         </td>
-                        <td className="py-2 pr-3 text-right font-mono">{fmtPrice(r.primaryTarget)}</td>
-                        <td className="py-2 pr-3 text-right font-mono">{r.phase === "UNKNOWN" ? "—" : r.confidence.toFixed(2)}</td>
-                        <td className="py-2 pr-3 subtle text-xs" title={r.note ?? undefined}>
+                        <td className="py-2 pr-3 text-right font-mono align-top">{fmtPrice(r.primaryTarget)}</td>
+                        <td className="py-2 pr-3 text-right font-mono align-top">{r.phase === "UNKNOWN" ? "—" : r.confidence.toFixed(2)}</td>
+                        <td className="py-2 pr-3 subtle text-xs align-top" title={r.note ?? undefined}>
                           {r.source ?? (r.note ?? "—")}
                           {r.lastUpdated ? <span className="ml-1 opacity-60">({r.lastUpdated})</span> : null}
                         </td>
@@ -225,6 +244,12 @@ export function InvalidationWatch({
             </div>
           )}
 
+          <p className="text-[11px] subtle mt-3 leading-relaxed">
+            <strong>Phase → Signal:</strong> W2/W3 = BUY, W3-of-3 = STRONG BUY, W1/W4/C = HOLD, W5 = CAUTION,
+            A/B = AVOID. These signals reflect EW theory only and are independent of the dashboard's primary
+            BUY/HOLD/AVOID recommendations (which use RSI, MACD, drift, sleeve caps, and tier thresholds).
+            Use this as a cross-check, not a replacement.
+          </p>
           <p className="text-[11px] subtle mt-3 leading-relaxed">
             <strong>Display only.</strong> Elliott Wave signals do not currently influence position sizing or
             deployment phases. Counts are auto-detected via a ZigZag pivot + Fibonacci ratio heuristic

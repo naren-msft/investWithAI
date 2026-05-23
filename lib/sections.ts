@@ -530,6 +530,10 @@ export const SECTIONS: HelpSection[] = [
     ],
     faqs: [
       {
+        q: "How is the Signal column derived from the phase?",
+        a: "Direct mapping from EW theory: W2 and W3 = BUY (corrective low / strongest trend leg), W3-of-3 = STRONG BUY (acceleration phase), W1 and W4 = HOLD (unconfirmed early trend / consolidation), C = HOLD (potential bottom but knife-catch), W5 = CAUTION (top forming), A and B = AVOID (corrective phases), UNKNOWN = no signal. These are EW-only signals and are independent of the dashboard's primary BUY/HOLD/AVOID recommendations (which use RSI, MACD, drift, sleeve caps, tier thresholds). Use it as a cross-check, not a replacement.",
+      },
+      {
         q: "What are the three Elliott Wave rules the counter enforces?",
         a: "(1) Wave 2 cannot retrace more than 100% of Wave 1 (price can't fall below W1's start). (2) Wave 3 is never the shortest among waves 1, 3, and 5. (3) Wave 4 cannot overlap Wave 1's price territory. Any auto-count that violates these is rejected before scoring.",
       },
