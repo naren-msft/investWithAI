@@ -16,7 +16,7 @@ export function CardHeader({
   right,
   helpSection,
 }: {
-  title: string;
+  title: React.ReactNode;
   subtitle?: string;
   right?: React.ReactNode;
   helpSection?: string;
