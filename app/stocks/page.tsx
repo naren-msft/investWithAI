@@ -74,8 +74,8 @@ export default async function StocksPage({
       <ChangeBanner refreshTick={refreshTick} apiPrefix={API_PREFIX} />
       <HeroSummary data={data} title="Stocks Portfolio · Fidelity" subtitle={`Multi-agent allocation across ${data.drift.length} stocks, tier-aware signals, staged deployment.`} scope="stocks" />
       <RegimeBanner regime={data.regime} />
-      <PortfolioInsights data={data} />
-      <UnderDeploymentSummary data={data} />
+      <PortfolioInsights data={data} universeLabel="Stocks in universe" />
+      <UnderDeploymentSummary data={data} assetNoun="stock" />
       <NextBestAllocation data={data} />
       <ExposurePanel data={data} />
       <RiskPanel data={data} />
@@ -83,7 +83,7 @@ export default async function StocksPage({
       <EquityCurve refreshTick={refreshTick} apiPrefix={API_PREFIX} />
       <DividendTracker refreshTick={refreshTick} apiPrefix={API_PREFIX} />
       <TaxLotTracker  refreshTick={refreshTick} apiPrefix={API_PREFIX} />
-      <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} skipped={data.skippedBuys} phaseReady={data.phaseReady} lockedReason={data.phaseLockedReason} />
+      <BuyRecommendations recs={data.recommendations} trancheBudget={data.trancheBudget} skipped={data.skippedBuys} phaseReady={data.phaseReady} lockedReason={data.phaseLockedReason} assetNoun="stock" />
 
       <AllocationTable rows={data.drift} recommendations={data.recommendations} detailBase="/stocks" />
       <ExecutionLog

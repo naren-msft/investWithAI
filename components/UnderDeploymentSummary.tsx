@@ -23,7 +23,7 @@ const CODE_LABEL: Record<SkippedBuyCode, string> = {
   "other":                 "Other",
 };
 
-export function UnderDeploymentSummary({ data }: { data: PipelineResult }) {
+export function UnderDeploymentSummary({ data, assetNoun = "ETF" }: { data: PipelineResult; assetNoun?: string }) {
   const { sizing, trancheBudget, totalRecommendedUsd, skippedBuys } = data;
   const unallocated = Math.max(0, trancheBudget - totalRecommendedUsd);
   const utilization = trancheBudget > 0 ? totalRecommendedUsd / trancheBudget : 0;
@@ -46,7 +46,7 @@ export function UnderDeploymentSummary({ data }: { data: PipelineResult }) {
       <CardHeader
         helpSection="under-deployment"
         title="Under-deployment explained"
-        subtitle="Why isn't every dollar working? Tranche sizing + per-ETF blocking reasons at a glance."
+        subtitle={`Why isn't every dollar working? Tranche sizing + per-${assetNoun} blocking reasons at a glance.`}
         right={
           <Badge variant={unallocated > 0 ? "warn" : "success"}>
             {unallocated > 0
@@ -85,7 +85,7 @@ export function UnderDeploymentSummary({ data }: { data: PipelineResult }) {
       {grouped.length > 0 && (
         <div className="rounded-lg border border-line bg-surface-2 p-3 text-xs">
           <div className="font-medium mb-2">
-            Per-ETF blocking reasons ({skippedBuys.length} excluded)
+            Per-{assetNoun} blocking reasons ({skippedBuys.length} excluded)
           </div>
           <ul className="space-y-1.5">
             {grouped.map(([code, tickers]) => (

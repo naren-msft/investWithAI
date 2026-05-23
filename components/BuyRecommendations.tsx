@@ -12,12 +12,14 @@ export function BuyRecommendations({
   skipped = [],
   phaseReady = true,
   lockedReason,
+  assetNoun = "ETF",
 }: {
   recs: BuyRecommendation[];
   trancheBudget: number;
   skipped?: SkippedBuy[];
   phaseReady?: boolean;
   lockedReason?: string;
+  assetNoun?: string;
 }) {
   const top = recs;
   const totalUsd = recs.reduce((s, r) => s + r.dollars, 0);
@@ -33,7 +35,7 @@ export function BuyRecommendations({
     <Card>
       <CardHeader helpSection="recommendations"
         title="Top buy recommendations"
-        subtitle="Sized from the current tranche × effective weights · capped at each ETF's remaining drift."
+        subtitle={`Sized from the current tranche × effective weights · capped at each ${assetNoun}'s remaining drift.`}
         right={<Badge variant="info">{recs.length} candidates</Badge>}
       />
       {top.length === 0 ? (
@@ -119,10 +121,10 @@ export function BuyRecommendations({
 
           {skippedToShow.length > 0 && (
             <div className="mt-3 rounded-lg border border-line bg-surface-3/40 p-3 text-xs">
-              <div className="font-medium mb-1.5">Why isn&apos;t every ETF here?</div>
+              <div className="font-medium mb-1.5">Why isn&apos;t every {assetNoun} here?</div>
               <div className="subtle mb-2">
-                Each excluded ETF was filtered at one of these gates: <span className="font-medium text-ink">drift &gt; $1k · signal ≠ AVOID · RSI &lt; 70 · sector cap · whole shares</span>.
-                {skippedToShow.length} ETF{skippedToShow.length === 1 ? " was" : "s were"} excluded:
+                Each excluded {assetNoun} was filtered at one of these gates: <span className="font-medium text-ink">drift &gt; $1k · signal ≠ AVOID · RSI &lt; 70 · sector cap · whole shares</span>.
+                {skippedToShow.length} {assetNoun}{skippedToShow.length === 1 ? " was" : "s were"} excluded:
               </div>
               <ul className="space-y-0.5">
                 {skippedToShow.map((f) => (
@@ -133,7 +135,7 @@ export function BuyRecommendations({
                 ))}
               </ul>
               <div className="mt-2 text-[10px] subtle">
-                See the <span className="font-medium">Under-deployment explained</span> card above for the dashboard-level summary, or the <span className="font-medium">Allocation table</span> for full per-ETF numbers.
+                See the <span className="font-medium">Under-deployment explained</span> card above for the dashboard-level summary, or the <span className="font-medium">Allocation table</span> for full per-{assetNoun} numbers.
               </div>
             </div>
           )}

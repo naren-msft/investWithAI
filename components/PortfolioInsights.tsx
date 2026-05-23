@@ -3,7 +3,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { fmtUsd, fmtPct } from "@/lib/format";
 
-export function PortfolioInsights({ data }: { data: PipelineResult }) {
+export function PortfolioInsights({ data, universeLabel = "ETFs in universe" }: { data: PipelineResult; universeLabel?: string }) {
   const totalUnderweight = data.drift.reduce((s, d) => s + Math.max(0, d.driftUsd), 0);
   const totalOverweight  = data.drift.reduce((s, d) => s + Math.max(0, -d.driftUsd), 0);
   const buyCount   = data.signals.filter((s) => s.signal === "BUY").length;
@@ -28,7 +28,7 @@ export function PortfolioInsights({ data }: { data: PipelineResult }) {
         ? `${(utilization * 100).toFixed(0)}% (${fmtUsd(recsTotal)} of ${fmtUsd(data.trancheBudget)})`
         : `Phase ${data.currentTranche.phase} locked` },
     { label: "Blended expense ratio", value: `${(blendedExpense * 100).toFixed(2)}% / yr` },
-    { label: "ETFs in universe", value: String(data.drift.length) },
+    { label: universeLabel, value: String(data.drift.length) },
   ];
 
   return (
