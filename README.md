@@ -10,6 +10,7 @@ A multi-agent allocation dashboard that operationalizes a staged-deployment inve
 |--------------|-------------------------------------------------------------------------------------------|-------------------------------------------------|
 | `/`          | ETFs — 11 funds, blended ~0.22% ER, broad market exposure                                  | Hero card "Edit sizing"                          |
 | `/stocks`    | 19 single stocks — NVDA, TSM, AVGO, ASML, MU, VRT, RBRK, CRWV, AAOI, BE, IONQ, RGTI, QBTS, INDI, QNC, LAES, BTQ, ARQQ, ZENA | "Stocks Portfolio · Fidelity" capital editor (propagates to every card) |
+| `/screener`  | 3-gate stock screener (~30 tickers) across themes (AI, semis, quantum, biotech, …). Two modes: **classic** (Minervini Stage-2 confirmation) and **gem** (early-upside discovery). | `?mode=classic\|gem`, `?discovery=on` |
 | `/help`      | Every section explained — what it does, why it exists, how to read it, FAQs, reference tables, floating "back to top" button | —                                                |
 
 Both dashboards share the same agent pipeline (`lib/agents/`) parameterized by portfolio config. The Stocks dashboard adds tier-aware sizing (**core / growth / speculative**), a dividend tracker, risk profile card (both collapsible), and the Elliott Wave Invalidation Watch.
@@ -52,6 +53,45 @@ The Stocks pipeline reuses the ETF agent stack (`portfolioState → allocationSt
 5. **Sanity guard** — any count whose invalidation distance exceeds 60% of price is downgraded to UNKNOWN.
 
 `config/elliott-wave.json` is the manual-override file (schema documented in-file). Any ticker left with `phase: "UNKNOWN"` is auto-counted on each pipeline run. The card renders phase + 1-line description + signal badge + invalidation price + distance. **Display only**; does not feed back into position sizing today (see `/help#invalidation-watch` for the full mapping table).
+
+## Screener (`/screener`)
+
+A 3-gate stock screener over a curated universe of ~30 tickers grouped by theme (AI infra, semis, quantum, biotech, energy, etc.). Each ticker is evaluated against three independent gates and assigned a 0–100 confidence score with `passedAll` flag.
+
+### Two modes
+
+| Mode      | Query param         | Use case                                            |
+|-----------|---------------------|-----------------------------------------------------|
+| Classic   | `?mode=classic` (default) | Minervini Stage-2 confirmation — leaders already in motion, low false-positive trend signal |
+| Gem       | `?mode=gem`         | Early-upside discovery — finds names before consensus, accepts more noise for earlier entries |
+| Discovery | `?mode=gem&discovery=on` | Expands universe by pulling top 10 holdings from ARKK / ARKG / SMH / XBI / KWEB / ICLN (capped at 25 net-new tickers) |
+
+The gate `maxScores` are preserved at **40 / 25 / 20** in both modes; gem mode rebalances scoring *within* those budgets so confidence bands (75 / 55 / 35) stay directly comparable.
+
+### Three gates
+
+1. **Fundamentals (40 pts)** — revenue growth, gross / operating margins, FCF, debt/equity. Gem mode adds: **PEG ratio** (Lynch GARP), **EPS revision direction** (Bernard & Thomas PEAD), **5-point Piotroski proxy** from annual income / cashflow / balance sheet history.
+2. **Moat (25 pts)** — chokepoint position (1–3), analyst consensus, institutional ownership. Gem mode adds: **neglect premium** for emerging names with ≤3 analysts (Arbel 1983), **insider cluster count** from `insiderTransactions` (conservative purchase-text allowlist, 90-day window) + `netSharePurchaseActivity` sanity check.
+3. **Trend (20 pts)** — Mark Minervini trend template (8 conditions on price vs. SMAs and 52-week range). Gem mode also rewards: **relative strength vs. SPY** (Mansfield/O'Neil 252d ratio), **frog-in-pan stealth grind** (Da/Gurun/Warachka 2014), **volume thrust** (CANSLIM), **base length** (consolidation tightness). Names <18 months old (`ipoAgeDays`) are routed into an **early-IPO branch** with relaxed conditions.
+
+### Regime modifier
+
+The 4-mode SPY regime detector adjusts the final score:
+- Classic: rally +3, neutral 0, pullback −3, correction hard-vetoes to watch-only
+- Gem: rally +2, neutral 0, **pullback +3** (entry zone), correction only vetoes if Gate 1 or Gate 2 *also* fail
+
+### UI
+
+- Mode toggle (Classic / Gem) in the screener header
+- 🔥 **Squeeze badge** for tickers with high short interest + days-to-cover (from `shortPercentOfFloat` + `shortRatio`, display only — not scored)
+- `disc` badge for tickers added via the discovery feed
+- Theme groupings with pass/fail counts and average confidence
+- Per-row drill-down showing every gate's check, score, and reasoning
+
+### Environment flags (optional)
+
+- `SCREENER_MODE=gem` — set default mode
+- `SCREENER_DISCOVERY=on` — enable discovery feed by default
 
 ## Portfolio (editable in `config/portfolio.ts`)
 
@@ -142,9 +182,19 @@ lib/
   agents/
     portfolioState, allocationStrategy, signalAnalysis,
     capitalDeployment, executionDecision, index (runPipeline)
-config/portfolio.ts # capital, buffer, ETF targets, tranches
-types/index.ts      # shared TypeScript types
-data/executions.json # your buy log (gitignored)
+  screener/
+    index.ts          # orchestrator: runScreener({mode, discovery})
+    types.ts          # ScreenerMode, gates, fundamentals/moat/trend
+    fundamentals.ts   # gate 1 — classic + gem variants
+    moat.ts           # gate 2 — classic + gem variants
+    trend.ts          # gate 3 — classic / gem / early-IPO evaluators
+    score.ts          # confidence + regime modifier
+    momentum.ts       # RS, frog-in-pan, volume thrust, base length
+    discovery.ts      # gem-mode ETF holdings feed (ARKK/SMH/...)
+config/portfolio.ts   # capital, buffer, ETF targets, tranches
+config/screener-themes.ts # screener universe by theme
+types/index.ts        # shared TypeScript types
+data/executions.json  # your buy log (gitignored)
 ```
 
 ## Customizing
@@ -156,6 +206,8 @@ data/executions.json # your buy log (gitignored)
 - **Tighter signal thresholds?** Edit `lib/agents/signalAnalysis.ts` (RSI thresholds + MACD confirmation rule).
 - **Different regime sensitivity?** Edit `lib/regime.ts` (thresholds + multipliers per mode).
 - **Override an Elliott Wave count?** Edit `config/elliott-wave.json` — set `phase` to anything other than `UNKNOWN` and the auto-counter will skip that ticker.
+- **Different screener universe?** Edit `config/screener-themes.ts` — themes map to `ThemeKey` and each theme has a `tickers[]` array with `tag` (`leader | emerging | venture`).
+- **Tune screener thresholds?** Edit `lib/screener/{fundamentals,moat,trend,score}.ts`. Classic and gem variants are split into per-mode functions; classic is byte-identical to the original logic.
 
 ## Disclaimer
 
