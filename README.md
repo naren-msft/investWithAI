@@ -1,10 +1,10 @@
 # InvestWithAI — ETF & Stocks Portfolio Dashboard
 
-A multi-agent allocation dashboard that operationalizes a staged-deployment investment plan across **two portfolios** — an **ETF** book (broad-market core) and a **Stocks** book (AI / semis / quantum themes). Live Yahoo Finance data, 5 cooperating agents per book, phased capital deployment with hard caps, full execution-loop tracking, broker deep links (Fidelity, Robinhood, Charles Schwab), and a research overlay that includes an automated **Elliott Wave Invalidation Watch**.
+A multi-agent allocation dashboard that operationalizes a staged-deployment investment plan across **two portfolios** — an **ETF** book (broad-market core) and a **Stocks** book (AI / semis / quantum themes) — plus a dedicated **Screener** for research and idea generation. Live Yahoo Finance data, 5 cooperating agents per book, phased capital deployment with hard caps, full execution-loop tracking, broker deep links (Fidelity, Robinhood, Charles Schwab), a research overlay that includes an automated **Elliott Wave Invalidation Watch**, and a 3-gate stock screener with classic (Minervini) and gem-discovery modes.
 
 > **Educational / demo project — not investment advice.** The capital figures, tickers, and allocation in `config/portfolio.ts` are an **example only**; edit them for your own situation. ETFs involve risk including possible loss of principal. No warranty of any kind.
 
-## Two dashboards
+## Routes
 
 | Route        | Universe                                                                                  | Capital control                                 |
 |--------------|-------------------------------------------------------------------------------------------|-------------------------------------------------|
@@ -13,7 +13,7 @@ A multi-agent allocation dashboard that operationalizes a staged-deployment inve
 | `/screener`  | 3-gate stock screener (~30 tickers) across themes (AI, semis, quantum, biotech, …). Two modes: **classic** (Minervini Stage-2 confirmation) and **gem** (early-upside discovery). | `?mode=classic\|gem`, `?discovery=on` |
 | `/help`      | Every section explained — what it does, why it exists, how to read it, FAQs, reference tables, floating "back to top" button | —                                                |
 
-Both dashboards share the same agent pipeline (`lib/agents/`) parameterized by portfolio config. The Stocks dashboard adds tier-aware sizing (**core / growth / speculative**), a dividend tracker, risk profile card (both collapsible), and the Elliott Wave Invalidation Watch.
+The ETF (`/`) and Stocks (`/stocks`) dashboards share the same agent pipeline (`lib/agents/`) parameterized by portfolio config. The Stocks dashboard adds tier-aware sizing (**core / growth / speculative**), a dividend tracker, risk profile card (both collapsible), and the Elliott Wave Invalidation Watch. The Screener (`/screener`) is a separate read-only research view built on `lib/screener/` — see the [Screener](#screener-screener) section below.
 
 ## What it does
 
