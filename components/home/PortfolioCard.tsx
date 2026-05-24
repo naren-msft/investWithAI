@@ -47,8 +47,8 @@ export function PortfolioCard({
   const positive = periodGain >= 0;
 
   return (
-    <Link href={href} className="group block">
-      <Card className="h-full transition-shadow group-hover:shadow-lg group-hover:border-emerald-500/40">
+    <Link href={href} className="group block h-full">
+      <Card className="h-full flex flex-col transition-shadow group-hover:shadow-lg group-hover:border-emerald-500/40">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
             {icon}
@@ -81,8 +81,10 @@ export function PortfolioCard({
         <ul className="mt-4 space-y-1.5 text-sm text-ink/80">
           {bullets.map((b, i) => <li key={i}>• {b}</li>)}
         </ul>
-        <div className="mt-5 inline-flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
-          {ctaLabel} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+        <div className="mt-auto pt-5">
+          <div className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white font-semibold text-sm px-4 py-2.5 shadow-sm transition-colors">
+            {ctaLabel} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
       </Card>
     </Link>
