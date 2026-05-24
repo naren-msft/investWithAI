@@ -1,6 +1,8 @@
 import type { Regime } from "@/types";
 import type { ThemeKey, ThemeTag, MoatType } from "@/config/screener-themes";
 
+export type ScreenerMode = "classic" | "gem";
+
 export interface GateCheck {
   ok: boolean;
   label: string;
@@ -49,6 +51,21 @@ export interface ScreenerFundamentals {
   trailingPE: number | null;
   forwardPE: number | null;
   pegRatio: number | null;
+
+  // Gem-mode additions (always populated when available; only scored in gem mode)
+  shortPercentOfFloat: number | null;
+  shortRatio: number | null;
+  beta: number | null;
+  sandp52WeekChange: number | null;
+  floatShares: number | null;
+  sharesOutstanding: number | null;
+  firstTradeDateMs: number | null;
+
+  // Gem-mode derived signals (computed in lib/screener/index.ts when mode === "gem")
+  epsRevisionDir: number | null;       // current FY estimate − estimate 30 days ago
+  insiderClusterCount: number | null;  // distinct insider purchases (last 90 days)
+  netInsiderShares: number | null;     // netSharePurchaseActivity.netInfoShares
+  piotroskiProxy: number | null;       // 0–5 score (proxy)
 }
 
 export interface ScreenerTrend {
@@ -65,6 +82,24 @@ export interface ScreenerTrend {
   pctFromHigh52w: number;
   pctAboveLow52w: number;
   minerviniConditions: boolean[];
+
+  // Gem-mode additions (always populated when computable; null otherwise)
+  relStrength: number | null;   // (stock 12m return) / (SPY 12m return)
+  frogInPan: number | null;     // (posDays − negDays) / (posDays + negDays) over last 126 closes
+  volumeThrust: number | null;  // last bar volume / SMA(50) volume
+  baseLength: number | null;    // trading days since price was last >5% above current 6m range
+}
+
+// Compact view of an early-stage (post-IPO) trend for stocks with insufficient
+// history for full Minervini. Returned in place of `ScreenerTrend` for the
+// early-IPO path; carried through `ScreenerRow.earlyTrend`.
+export interface ScreenerEarlyTrend {
+  price: number;
+  ipoLow: number;
+  priceAboveIpoLow: number;     // price / ipoLow
+  momentum20d: number;          // (price − close 20d ago) / close 20d ago
+  volumeThrust: number | null;
+  ipoAgeDays: number;
 }
 
 export interface ScreenerRow {
@@ -79,6 +114,7 @@ export interface ScreenerRow {
 
   fundamentals: ScreenerFundamentals;
   trend: ScreenerTrend | null;
+  earlyTrend?: ScreenerEarlyTrend | null;
 
   gate1: GateResult;
   gate2: GateResult;
@@ -87,10 +123,15 @@ export interface ScreenerRow {
 
   passedAll: boolean;
   error?: string;
+
+  // Gem-mode additions
+  squeezeFlag?: boolean;        // shortPctOfFloat > 0.20 && shortRatio > 5 && passedAll
+  discoverySource?: string;     // e.g. "via ARKK" — populated only for discovery-feed tickers
 }
 
 export interface ScreenerResult {
   asOf: string;
+  mode: ScreenerMode;
   regime: Regime;
   rows: ScreenerRow[];
   themes: {
@@ -100,4 +141,5 @@ export interface ScreenerResult {
     sleeveCapPct: number;
     counts: { core: number; emerging: number; venture: number; total: number; passed: number };
   }[];
+  discoveryUsed?: boolean;
 }
