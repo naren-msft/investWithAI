@@ -26,7 +26,8 @@ export type ThemeKey =
   | "cybersecurity"
   | "healthcare-ai"
   | "quantum-compute"
-  | "quantum-safe";
+  | "quantum-safe"
+  | "discovery";
 
 export interface ThemeTicker {
   ticker: string;

@@ -265,7 +265,19 @@ function Row({
         <td className="px-2 py-2 align-middle">
           {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </td>
-        <td className="px-2 py-2 font-mono font-semibold text-ink">{row.ticker}</td>
+        <td className="px-2 py-2 font-mono font-semibold text-ink">
+          <div className="flex items-center gap-1">
+            <span>{row.ticker}</span>
+            {row.squeezeFlag && (
+              <span title="Short squeeze setup: float >20% short AND >5d to cover" className="text-base leading-none">🔥</span>
+            )}
+            {row.discoverySource && (
+              <span title={row.discoverySource} className="text-[9px] uppercase tracking-wide px-1 py-px rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-sans">
+                disc
+              </span>
+            )}
+          </div>
+        </td>
         <td className="px-2 py-2 hidden md:table-cell">{row.name}</td>
         <td className="px-2 py-2 text-right font-mono tabular-nums">
           <div>{fmtPrice(price)}</div>
