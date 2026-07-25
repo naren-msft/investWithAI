@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pause, Play, RefreshCw } from "lucide-react";
 
@@ -14,9 +14,13 @@ export function AutoRefresh() {
   const [enabled, setEnabled] = useState(true);
   const [interval, setIntervalSec] = useState<Interval>(60);
   const [countdown, setCountdown] = useState(60);
-  const [refreshing, setRefreshing] = useState(false);
   const [mounted, setMounted] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // useTransition lets router.refresh() swap the RSC payload *without*
+  // unmounting the current subtree — eliminates the visible flicker on
+  // charts / tables every minute. `isPending` doubles as our "refreshing"
+  // indicator for the spinner.
+  const [isPending, startTransition] = useTransition();
 
   // Hydrate from localStorage once on mount.
   useEffect(() => {
@@ -53,9 +57,7 @@ export function AutoRefresh() {
     tickRef.current = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
-          setRefreshing(true);
-          router.refresh();
-          setTimeout(() => setRefreshing(false), 800);
+          startTransition(() => router.refresh());
           return interval;
         }
         return c - 1;
@@ -65,10 +67,8 @@ export function AutoRefresh() {
   }, [enabled, interval, router]);
 
   function refreshNow() {
-    setRefreshing(true);
-    router.refresh();
+    startTransition(() => router.refresh());
     setCountdown(interval);
-    setTimeout(() => setRefreshing(false), 800);
   }
 
   if (!mounted) return null;
@@ -79,9 +79,9 @@ export function AutoRefresh() {
         type="button"
         onClick={refreshNow}
         title="Refresh now"
-        className={`inline-flex items-center justify-center w-5 h-5 hover:text-brand transition-colors ${refreshing ? "text-brand" : ""}`}
+        className={`inline-flex items-center justify-center w-5 h-5 hover:text-brand transition-colors ${isPending ? "text-brand" : ""}`}
       >
-        <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+        <RefreshCw className={`w-3.5 h-3.5 ${isPending ? "animate-spin" : ""}`} />
       </button>
       <button
         type="button"

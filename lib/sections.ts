@@ -619,25 +619,25 @@ export const SECTIONS: HelpSection[] = [
   // ====================================================================
   {
     id: "screener-overview",
-    title: "Stock Screener — overview",
-    oneLiner: "Deterministic 3-gate funnel that ranks ~30 tickers across 9 secular themes.",
+    title: "Ross Screener — overview",
+    oneLiner: "Ross Cameron's 5 Pillars momentum filter over live small-cap movers.",
     whatItIs:
-      "A research dashboard at /screener that applies a rules-based pipeline — Fundamentals → Moat → Market Confirmation — to a hand-curated universe of companies that benefit from durable multi-year waves (AI compute, chipmaking equipment, HBM, datacenter networking & power, cybersecurity, healthcare AI, quantum, quantum-safe).",
+      "A research dashboard at /screener that applies Ross Cameron's (Warrior Trading) famous '5 Pillars' momentum-day-trading criteria to a DYNAMIC universe of movers pulled live from TradingView's scanner (with a Yahoo Finance fallback). The five pillars: (1) Relative Volume ≥ 5×, (2) Daily change ≥ 10%, (3) News catalyst, (4) Price $1–$20, (5) Float < 10M shares.",
     whyItMatters:
-      "Theme-based investing tends to over-reward narrative and under-reward execution. By running every candidate through the same three quantitative gates and producing a single 0-100 confidence score, the screener turns 'gut feel' into a comparable, reproducible signal. It's intentionally NOT a buy list — it's a watchlist generator with the math shown.",
+      "Ross-style momentum trading depends on catching low-float small-caps already in motion on real news. Screening the whole market for the five pillars at once — instead of flipping charts one by one — surfaces the day's candidates fast. Every automated pillar is shown pass/fail so you can see exactly why a name qualified.",
     howToRead: [
-      "Header strip: pass count (made all 3 gates), high-confidence count, medium-confidence count.",
-      "Theme map: 9 cards, each showing pass-rate bar + Core/Emerging/Venture counts + sleeve cap.",
-      "Ranked watchlist: every ticker sorted by confidence score descending. Click any row for the per-gate breakdown.",
-      "Methodology card explains every threshold used.",
-      "Top filter chips let you narrow to Pass-all-3 / Core / Emerging / Venture, plus a theme dropdown.",
+      "Header strip: count of names meeting all automated pillars (green), count flagged strong-momentum (🔥), and whether custom thresholds are active.",
+      "Threshold controls: adjust max price ($20 / $50 / $100 / custom), min price, min change %, min RVol, and max float — applied server-side and saved in the URL.",
+      "Watchlist: movers sorted green-first then by % change. Green row = all automated pillars met. Click a row for the 5-pillar breakdown + green catalyst-news list.",
+      "News: latest headlines published since the previous market close (after-hours + pre-market catalyst window), shown green. Always verify the catalyst yourself (Pillar 3 is manual).",
     ],
     faqs: [
-      { q: "Why isn't ticker X in the screener?", a: "The universe is hand-curated to themes with clear chokepoint logic. Add or remove tickers in config/screener-themes.ts." },
-      { q: "How often does it refresh?", a: "5-minute server cache on full screener output, 60-second cache on individual Yahoo quote/history fetches. Reload after 5 minutes for fully fresh scores." },
-      { q: "Is this a buy list?", a: "No. It's a deterministic research aid. High confidence ≠ recommendation. Always do your own due diligence, especially on Venture-tagged names." },
+      { q: "Why is the list empty right now?", a: "Outside of a strong session there may be no names meeting all five pillars. Widen the max price or lower the RVol / change % thresholds using the controls." },
+      { q: "Where do candidates come from?", a: "TradingView's public scanner (filtered by the pillars server-side). If it's unavailable, the screen falls back to Yahoo Finance predefined gainer/small-cap screeners." },
+      { q: "Why is float shown as N/A?", a: "Float data isn't always available for small-caps. Per Ross's script, N/A does NOT fail Pillar 5 — it's flagged for manual verification on Finviz." },
+      { q: "Is this a buy list?", a: "No. Day trading is extremely high risk and most day traders lose money. A green row is a scan signal, not a recommendation. Confirm the catalyst and your risk plan first." },
     ],
-    related: ["screener-themes", "screener-gate-fundamentals", "screener-confidence"],
+    related: [],
   },
   {
     id: "screener-themes",

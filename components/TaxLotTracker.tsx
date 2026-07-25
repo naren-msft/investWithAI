@@ -38,17 +38,18 @@ interface TaxReport {
 export function TaxLotTracker({ refreshTick, apiPrefix = "/api" }: { refreshTick?: number; apiPrefix?: string }) {
   const [data, setData] = useState<TaxReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasData = data !== null;
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    if (!hasData) setLoading(true);
     fetch(`${apiPrefix}/tax-lots`)
       .then((r) => r.json())
       .then((j) => alive && setData(j))
-      .catch(() => alive && setData(null))
+      .catch(() => { /* keep last-known data to avoid flicker */ })
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [refreshTick]);
+  }, [refreshTick, apiPrefix, hasData]);
 
   if (loading) {
     return (

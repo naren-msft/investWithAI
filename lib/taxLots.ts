@@ -54,7 +54,11 @@ export async function computeTaxReport(opts: TaxReportOptions = {}): Promise<Tax
   const priceByTicker = new Map(quotes.map((q) => [q.ticker, q.price]));
   const nowMs = now.getTime();
 
-  const lots: TaxLot[] = execs.map((e) => {
+  // Tax-lot view shows OPEN buy lots only — sells close lots (FIFO matching is
+  // not modeled here; we just exclude sell rows so the lot list and unrealized
+  // gain totals don't double-count returned cash). Realized P&L is tracked in
+  // the execution journal directly.
+  const lots: TaxLot[] = execs.filter((e) => (e.side ?? "buy") === "buy").map((e) => {
     const price = priceByTicker.get(e.ticker) ?? 0;
     const costBasis = e.shares * e.price;
     const currentValue = e.shares * price;

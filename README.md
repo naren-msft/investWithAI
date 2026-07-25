@@ -10,7 +10,8 @@ Multi-agent allocation dashboard with a staged-deployment plan for an **ETF** bo
 |-------------|-----------------------------------------------------------------------------------------|
 | `/`         | ETF dashboard — broad-market core, staged deployment                                    |
 | `/stocks`   | Single-stock dashboard — tier-aware sizing, Elliott Wave overlay                        |
-| `/screener` | 3-gate screener with classic (Minervini) and gem-discovery modes (`?mode=gem`)          |
+| `/fomc`     | FOMC June-17 playbook — CUT/HOLD/HIKE scenarios, 4-phase event-keyed deployment, $700K  |
+| `/screener` | **Ross Screener** — Ross Cameron 5 Pillars momentum filter over live movers (adjustable thresholds) |
 | `/help`     | Full reference for every dashboard section                                              |
 
 ## Pipeline (ETF + Stocks)
@@ -33,30 +34,31 @@ Plus a 4-mode SPY regime detector (Rally / Neutral / Pullback / Correction) that
 
 `lib/elliott-wave/counter.ts` — self-contained ZigZag pivot detector + 5-wave impulse fitter that enforces the three EW rules (W2 ≤ W1, W3 not shortest, W4 no overlap with W1), Fibonacci scoring, and a post-impulse phase classifier. Each ticker gets a phase label (W1–W5 / A / B / C), an invalidation price, and a STRONG BUY / BUY / HOLD / CAUTION / AVOID signal. Manual overrides in `config/elliott-wave.json`. **Display only** — does not feed position sizing.
 
-## Screener (`/screener`)
+## Ross Screener (`/screener`)
 
-3 independent gates → 0–100 confidence + `passedAll`. Gate maxScores are fixed at **40 / 25 / 20** in both modes; gem mode rebalances *within* those budgets.
+Ross Cameron's (Warrior Trading) **5 Pillars** momentum-day-trading filter over a **dynamic** universe of live movers. Candidates are pulled from the **TradingView** public scanner (filtered server-side by the pillars), with a **Yahoo Finance** fallback (`small_cap_gainers` / `day_gainers` / `aggressive_small_caps`). A row shows a **green background** when all *automated* pillars pass.
 
-### Modes
+### The 5 Pillars
 
-| Mode      | Query                          | Use case                                                  |
-|-----------|--------------------------------|-----------------------------------------------------------|
-| Classic   | `?mode=classic` (default)      | Minervini Stage-2 confirmation — leaders already in motion |
-| Gem       | `?mode=gem`                    | Early-upside discovery — accepts more noise for earlier entries |
-| Discovery | `?mode=gem&discovery=on`       | Adds ≤25 net-new tickers from ARKK / ARKG / SMH / XBI / KWEB / ICLN |
+| # | Pillar            | Default        | Notes                                                             |
+|---|-------------------|----------------|-------------------------------------------------------------------|
+| 1 | Relative Volume   | ≥ 5×           | TradingView 10-day RVol used as proxy                             |
+| 2 | Daily % change    | ≥ +10%         | Already in motion                                                 |
+| 3 | News catalyst     | manual (🔥 ≥15%)| Green catalyst headlines since previous close; verify yourself    |
+| 4 | Price range       | $1–$20         | **Adjustable** — $20 / $50 / $100 / custom                        |
+| 5 | Float             | < 10M shares   | N/A is flagged for manual check, **not** failed (matches script)  |
 
-### Gates
+### Adjustable thresholds
+All thresholds are user-adjustable at runtime via the in-page control and URL query params — e.g. `?maxPrice=100&minRvol=5&minChange=10&maxFloat=10000000`. `config/ross.ts` holds the Ross defaults + `resolveThresholds()` (clamps overrides to safe ranges); the price band, RVol, change % and float are applied server-side in the scanner. Results are cached 5 min per threshold set.
 
-1. **Fundamentals (40)** — growth, margins, FCF, D/E. *Gem adds:* PEG (Lynch), EPS revision direction (Bernard & Thomas PEAD), 5-point Piotroski proxy.
-2. **Moat (25)** — chokepoint, analyst consensus, institutional ownership. *Gem adds:* neglect premium for ≤3-analyst names (Arbel 1983), insider cluster count (conservative purchase allowlist + 90d window).
-3. **Trend (20)** — Minervini trend template. *Gem adds:* relative strength vs. SPY (Mansfield/O'Neil), frog-in-pan stealth grind (Da/Gurun/Warachka 2014), volume thrust, base length. Names <18 months old route to an early-IPO branch with relaxed conditions.
+### News
+Latest headlines per pick published **since the previous market close** (after-hours + pre-market catalyst window), from Yahoo Finance search, rendered **green** as catalysts. Google Finance deep-links per row for manual research.
 
-### Regime modifier
-- **Classic:** rally +3, neutral 0, pullback −3, correction → watch-only
-- **Gem:** rally +2, neutral 0, **pullback +3** (entry zone), correction only vetoes if Gate 1 or Gate 2 also fail
+### Code
+`config/ross.ts` · `lib/ross/{tradingview,yahooFallback,extendedHours,pillars,sentiment,news,finnhub,index}.ts` · `app/api/ross/route.ts` (legacy `/api/screener` is a shim) · `components/ross/{RossTable,PillarBreakdown,RossControls}.tsx`.
 
-### UI extras
-🔥 squeeze badge (short interest + days-to-cover, not scored) · `disc` badge for discovery-feed tickers · per-row drill-down of every gate check.
+> Educational/demo only — day trading is extremely high risk and most day traders lose money.
+
 
 ## Run
 
@@ -65,7 +67,7 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-No env vars required. Optional: `CAPITAL`, `CASH_BUFFER`, `SCREENER_MODE`, `SCREENER_DISCOVERY`. First load fetches ~9 months of daily candles per ticker + SPY; subsequent loads hit a 5-min cache.
+No env vars required. Optional: `CAPITAL`, `CASH_BUFFER`, `SCREENER_MODE`, `SCREENER_DISCOVERY`, and `FINNHUB_API_KEY` (Ross Screener near-real-time catalyst news — free key at [finnhub.io](https://finnhub.io/register); falls back to Yahoo when unset). First load fetches ~9 months of daily candles per ticker + SPY; subsequent loads hit a 5-min cache.
 
 ## Tech
 
@@ -80,11 +82,11 @@ lib/
   yahoo.ts, indicators.ts, regime.ts, phaseGate.ts, store.ts
   agents/                 # 5-agent pipeline (portfolioState → executionDecision)
   elliott-wave/           # ZigZag + impulse fitter + phase classifier
-  screener/               # types, fundamentals, moat, trend, score, momentum, discovery
+  ross/                   # Ross 5 Pillars: tradingview, yahooFallback, pillars, news, index
 config/
   portfolio.ts            # ETF book: capital, buffer, targets, tranches
   stocks.ts               # Stocks book: capital, tier-aware caps
-  screener-themes.ts      # screener universe by theme
+  ross.ts                 # Ross Screener thresholds + resolveThresholds()
   elliott-wave.json       # manual EW overrides
 data/                     # execution logs (gitignored)
 ```
@@ -94,11 +96,12 @@ data/                     # execution logs (gitignored)
 Everything is config-driven. Edit:
 - `config/portfolio.ts` — ETF targets (weights sum to 1.0), tranche plan
 - `config/stocks.ts` — stock universe with `tier: core | growth | speculative` (drives caps + ZigZag thresholds)
-- `config/screener-themes.ts` — screener universe by theme; each entry tagged `leader | emerging | venture`
+- `config/fomc.ts` + `config/fomc-scenarios.ts` — FOMC playbook universe, per-scenario weight columns (CUT/HOLD/HIKE/neutral), event-keyed phase schedule
+- `config/ross.ts` — Ross Screener 5-Pillar thresholds (min RVol, min change %, price band, max float) + safe-clamp ranges
 - `config/elliott-wave.json` — manual wave-count overrides (set `phase` ≠ `"UNKNOWN"` to skip auto-counter)
 - `lib/agents/signalAnalysis.ts` — RSI/MACD thresholds
 - `lib/regime.ts` — regime sensitivity + multipliers
-- `lib/screener/{fundamentals,moat,trend,score}.ts` — screener thresholds (classic + gem variants)
+- `lib/ross/index.ts` + `config/ross.ts` — Ross Screener candidate sourcing, pillar thresholds, news window
 
 Capital and cash buffer also have an in-dashboard "Edit sizing" control (persists per browser, supports `?capital=…&buffer=…` URL override).
 

@@ -1,8 +1,8 @@
 // Next.js instrumentation hook — runs once when the server boots.
-// Pings the pipeline endpoint every 5 minutes so snapshots get captured
+// Pings the pipeline endpoints every 5 minutes so snapshots get captured
 // even when no one is viewing the dashboard.
 //
-// We hit the HTTP endpoint instead of importing the pipeline directly so
+// We hit the HTTP endpoints instead of importing the pipeline directly so
 // the Node-only deps (yahoo-finance2, @deno/shim-deno) don't get pulled
 // into the edge bundle during build.
 declare global {
@@ -15,14 +15,21 @@ export async function register() {
   if (globalThis.__investaiPipelineCron) return;
 
   const port = process.env.PORT ?? "3000";
-  const url = `http://127.0.0.1:${port}/api/pipeline`;
+  const base = `http://127.0.0.1:${port}`;
+  const urls = [
+    `${base}/api/pipeline`,         // ETF
+    `${base}/api/stocks/pipeline`,  // Stocks
+    `${base}/api/fomc/pipeline`,    // FOMC
+  ];
 
   async function tick() {
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) console.warn(`[investai cron] pipeline tick HTTP ${res.status}`);
-    } catch (e) {
-      console.warn("[investai cron] pipeline tick failed:", (e as Error)?.message);
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) console.warn(`[investai cron] tick HTTP ${res.status} ${url}`);
+      } catch (e) {
+        console.warn(`[investai cron] tick failed ${url}:`, (e as Error)?.message);
+      }
     }
   }
 
@@ -30,5 +37,5 @@ export async function register() {
   // every 5 minutes.
   setTimeout(tick, 15_000);
   globalThis.__investaiPipelineCron = setInterval(tick, 5 * 60 * 1000);
-  console.log(`[investai cron] pipeline scheduled every 5 minutes (${url})`);
+  console.log(`[investai cron] pipelines (etf+stocks+fomc) scheduled every 5 minutes`);
 }

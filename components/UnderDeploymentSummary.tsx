@@ -20,6 +20,9 @@ const CODE_LABEL: Record<SkippedBuyCode, string> = {
   "position-cap":          "Per-name position cap reached",
   "sleeve-cap":            "Themed sleeve cap reached",
   "insufficient-data":     "Insufficient price history",
+  "data-quality":          "Quote stale / missing — trading blocked",
+  "leveraged-bear-regime": "Leveraged 3× ETF deferred (bear regime)",
+  "leveraged-non-fomc-day": "Leveraged 3× ETF reserved for FOMC day",
   "other":                 "Other",
 };
 

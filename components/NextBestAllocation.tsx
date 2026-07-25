@@ -21,6 +21,9 @@ const UNLOCK_CONDITION: Record<SkippedBuyCode, string> = {
   "position-cap":          "if the per-name position cap is raised or other holdings grow the denominator",
   "sleeve-cap":            "if sleeve exposure falls (other names in the sleeve sell / rebalance)",
   "insufficient-data":     "once the ticker has enough price history for indicators",
+  "data-quality":          "once Yahoo returns a fresh, valid quote for this ticker",
+  "leveraged-bear-regime": "once the SPY regime returns to rally/neutral (3× ETFs deferred in pullbacks)",
+  "leveraged-non-fomc-day": "only on the FOMC decision day (Jun 17 2026) — 3× ETFs are catalyst-only",
   "other":                 "when the underlying condition resolves",
 };
 
