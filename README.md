@@ -56,8 +56,11 @@ Candidates are pulled from the **TradingView** public scanner (filtered server-s
 ### Adjustable thresholds
 All thresholds are user-adjustable at runtime via the in-page control and URL query params — e.g. `?maxPrice=100&minRvol=5&minChange=10&maxFloat=10000000`. `config/ross.ts` holds the Ross defaults + `resolveThresholds()` (clamps overrides to safe ranges); the price band, RVol, change % and float are applied server-side in the scanner. Results are cached 5 min per threshold set.
 
-### News
-Latest headlines per pick published **since the previous market close** (after-hours + pre-market catalyst window), from Yahoo Finance search, rendered **green** as catalysts. Google Finance deep-links per row for manual research.
+### Extended hours (gap-and-go)
+Ross's "gap and go" wants names already bidding **up** after the close and continuing into the pre-market. `lib/ross/extendedHours.ts` reads Yahoo's keyless `quote` endpoint for `marketState` (PRE / REGULAR / POST / …) plus pre- and post-market change %, flags candidates that are *rising* in extended hours, and normalizes the exchange prefix. Best-effort — never throws.
+
+### News & sentiment
+Latest headlines per pick published **since the previous market close** (after-hours + pre-market catalyst window). Source is **Yahoo Finance** search by default, or **Finnhub** company-news (`lib/ross/finnhub.ts`) for near-real-time, minute-level breaking headlines when `FINNHUB_API_KEY` is set — otherwise the Finnhub path is a transparent no-op. Headlines pass through a keyword **sentiment** scorer (`lib/ross/sentiment.ts`) that up-weights bullish momentum language and drops negative/neutral ones, so only green catalysts are surfaced. Google Finance deep-links per row for manual research.
 
 ### Code
 `config/ross.ts` · `config/largecap.ts` · `config/screenerProfile.ts` (shared profile abstraction) · `lib/ross/{tradingview,yahooFallback,extendedHours,pillars,sentiment,news,finnhub,index}.ts` · `app/api/ross/route.ts` + `app/api/largecap/route.ts` (legacy `/api/screener` is a shim) · `components/ross/{RossTable,PillarBreakdown,RossControls,LargecapControls,BookTabs}.tsx`.
