@@ -61,7 +61,7 @@ export async function runPipeline(opts: RunPipelineOptions = {}): Promise<Pipeli
     signalAnalysisAgent([...baseCfg.targets]),
     readExecutions(bundle.kind),
     getHistory("SPY", 12),
-    computePortfolioBeta(baseCfg.targets.map((t) => ({ ticker: t.ticker, weight: t.weight }))),
+    computePortfolioBeta(baseCfg.targets.map((t) => ({ ticker: t.ticker, weight: t.weight, tier: t.tier }))),
     Promise.all(tickers.map((t) => computeEtfDrawdownStats(t))),
     bundle.computeEtfOverlap ? computeOverlap(baseCfg.targets).catch(() => null) : Promise.resolve(null),
     fetchVixSafe(),
@@ -126,6 +126,10 @@ export async function runPipeline(opts: RunPipelineOptions = {}): Promise<Pipeli
   const projectedBeta = deployAgent.output.sizing.betaThrottle.projectedBeta;
 
   const effectiveTrancheBudget = deployAgent.output.trancheBudget;
+  const dataQualitySkips = quotes
+    .filter((q) => q.dataQuality === "invalid" || q.dataQuality === "stale")
+    .map((q) => ({ ticker: q.ticker, reason: `DATA INVALID: ${q.qualityReason ?? q.dataQuality}` }));
+
   const execAgent = executionDecisionAgent(
     allocAgent.output.drift,
     signalsAgent.output,
@@ -133,7 +137,28 @@ export async function runPipeline(opts: RunPipelineOptions = {}): Promise<Pipeli
     [...cfg.targets],
     overlap,
     stateAgent.output.portfolioValue,
-    { applySectorCap: bundle.computeEtfOverlap },
+    {
+      applySectorCap: bundle.computeEtfOverlap,
+      sleeveCaps: bundle.sleeveCaps,
+      roleToSleeve: bundle.roleToSleeve,
+      dataQualitySkips,
+      capitalAnchor: cfg.capital,
+      allowFractionalShares: bundle.allowFractionalShares === true,
+      leveragedPolicy: bundle.kind === "fomc" ? {
+        regimeKind: regime.kind,
+        fomcDayOnly: true,
+        // FOMC decision day = Jun 17 2026 in ET. We allow leveraged buys
+        // any time on that calendar day (pre-market through after-hours).
+        isFomcDay: (() => {
+          const fomcEt = new Date("2026-06-17T18:00:00Z"); // 14:00 ET = 18:00 UTC
+          const today = new Date();
+          // Compare ET dates (offset UTC by −4h for EDT in June).
+          const etToday = new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          const etFomc  = new Date(fomcEt.getTime()  - 4 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          return etToday === etFomc;
+        })(),
+      } : undefined,
+    },
   );
 
   const totalRecommendedUsd = execAgent.output.recommendations.reduce((s, r) => s + r.dollars, 0);
@@ -156,6 +181,9 @@ export async function runPipeline(opts: RunPipelineOptions = {}): Promise<Pipeli
 
   const result: PipelineResult = {
     asOf: new Date().toISOString(),
+    marketDataAsOf: quotes.length > 0
+      ? quotes.reduce((min, q) => (q.asOf < min ? q.asOf : min), quotes[0].asOf)
+      : new Date(0).toISOString(),
     capital: cfg.capital,
     cashBuffer: cfg.cashBuffer,
     deployedUsd: stateAgent.output.deployedUsd,
@@ -177,6 +205,47 @@ export async function runPipeline(opts: RunPipelineOptions = {}): Promise<Pipeli
     phaseLockedReason: deployAgent.output.lockedReason,
     phaseGates: gateResult.states,
     phaseAnchor: anchor,
+    dataHealth: quotes.map((q) => ({
+      ticker: q.ticker,
+      dataQuality: q.dataQuality,
+      reason: q.qualityReason,
+      asOf: q.asOf,
+      price: q.price,
+      spreadPct: q.spreadPct ?? 0,
+      bid: q.bid,
+      ask: q.ask,
+      avgVolume: q.avgVolume,
+    })),
+    sleeveExposure: (() => {
+      const rows = stateAgent.output.drift;
+      const by = new Map<string, { currentUsd: number; targetUsd: number; tickers: string[] }>();
+      for (const d of rows) {
+        const sl = bundle.roleToSleeve[d.role] ?? "other";
+        const r = by.get(sl) ?? { currentUsd: 0, targetUsd: 0, tickers: [] };
+        r.currentUsd += d.currentUsd;
+        r.targetUsd  += d.targetUsd;
+        r.tickers.push(d.ticker);
+        by.set(sl, r);
+      }
+      const pv = stateAgent.output.portfolioValue || cfg.capital;
+      return Array.from(by, ([sleeve, r]) => {
+        const cap = bundle.sleeveCaps?.[sleeve]?.hardPct ?? null;
+        const capDollars = cap != null ? cap * pv : null;
+        return {
+          sleeve,
+          label: bundle.sleeveLabel[sleeve] ?? sleeve,
+          currentUsd: r.currentUsd,
+          targetUsd:  r.targetUsd,
+          capPct: cap,
+          capDollars,
+          currentPct: pv > 0 ? r.currentUsd / pv : 0,
+          targetPct:  pv > 0 ? r.targetUsd  / pv : 0,
+          tickers: r.tickers,
+          overCap: capDollars != null && r.currentUsd > capDollars + 1e-6,
+        };
+      });
+    })(),
+    bundleKind: bundle.kind,
     forwardRisk: (() => {
       return {
         portfolioBeta: betaResult.portfolioBeta,

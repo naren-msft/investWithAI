@@ -32,9 +32,9 @@ export function ChangeBanner({ refreshTick, apiPrefix = "/api" }: { refreshTick?
     fetch(`${apiPrefix}/snapshots?diff=1&limit=2`)
       .then((r) => r.json())
       .then((j) => alive && setDiff(j.diff ?? null))
-      .catch(() => alive && setDiff(null));
+      .catch(() => { /* keep last-known diff to avoid blank flicker */ });
     return () => { alive = false; };
-  }, [refreshTick]);
+  }, [refreshTick, apiPrefix]);
 
   // When diff appears, optionally fire a desktop notification (once per
   // current.asOf so the same change doesn't notify on every refresh).

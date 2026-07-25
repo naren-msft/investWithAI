@@ -157,3 +157,121 @@ export function adx(
   const last = adxSeries[adxSeries.length - 1];
   return Number.isFinite(last) ? last : NaN;
 }
+
+// ---------------------------------------------------------------------------
+// MACD-as-series + RSI+MACD verdict helper used by IntradayChart. The scalar
+// `macd()` above stays for backward compat; this returns full arrays so the
+// chart can plot the MACD/signal/histogram across every bar.
+// ---------------------------------------------------------------------------
+export interface MacdSeries { macd: number[]; signal: number[]; hist: number[]; }
+export function macdSeries(values: number[], fast = 12, slow = 26, signalP = 9): MacdSeries {
+  const ef = emaSeriesPublic(values, fast);
+  const es = emaSeriesPublic(values, slow);
+  const m  = values.map((_, i) => (Number.isNaN(ef[i]) || Number.isNaN(es[i]) ? NaN : ef[i] - es[i]));
+  const firstValid = m.findIndex((v) => !Number.isNaN(v));
+  const sig: number[] = new Array(values.length).fill(NaN);
+  if (firstValid >= 0 && m.length - firstValid >= signalP) {
+    const sub = m.slice(firstValid);
+    const sEma = emaSeriesPublic(sub, signalP);
+    for (let i = 0; i < sEma.length; i++) sig[firstValid + i] = sEma[i];
+  }
+  const hist = m.map((v, i) => (Number.isNaN(v) || Number.isNaN(sig[i]) ? NaN : v - sig[i]));
+  return { macd: m, signal: sig, hist };
+}
+// Local copy to keep emaSeries private but accessible — same impl.
+function emaSeriesPublic(values: number[], period: number): number[] {
+  const k = 2 / (period + 1);
+  const out: number[] = new Array(values.length).fill(NaN);
+  if (values.length < period) return out;
+  const seed = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  out[period - 1] = seed;
+  let prev = seed;
+  for (let i = period; i < values.length; i++) {
+    prev = values[i] * k + prev * (1 - k);
+    out[i] = prev;
+  }
+  return out;
+}
+
+export type Verdict = "BUY" | "HOLD" | "SELL";
+export interface VerdictResult {
+  verdict: Verdict;
+  score: number;
+  reasons: string[];
+  rsi: number | null;
+  macd: number | null;
+  signal: number | null;
+  hist: number | null;
+  histPrev: number | null;
+}
+
+// Combine MACD + RSI into a single Buy/Hold/Sell verdict for the most recent
+// bar. Rubric (intentionally simple & explainable):
+//   MACD line crosses ABOVE signal this bar      → +2 (fresh bullish trigger)
+//   MACD line crosses BELOW signal this bar      → -2 (fresh bearish trigger)
+//   MACD > signal AND histogram expanding        → +1
+//   MACD < signal AND histogram expanding down   → -1
+//   RSI > 70  → -1 (overbought) ·  RSI < 30 → +1 (oversold)
+//   RSI 50-70 rising → +1 · RSI 30-50 falling → -1
+// Final: score ≥ +2 → BUY · ≤ -2 → SELL · else HOLD.
+export function computeVerdict(closes: number[]): VerdictResult {
+  const r  = rsiSeries(closes, 14);
+  const mz = macdSeries(closes, 12, 26, 9);
+  const last = closes.length - 1;
+  const prev = closes.length - 2;
+  const rVal  = last >= 0 ? r[last]  : NaN;
+  const rPrev = prev >= 0 ? r[prev]  : NaN;
+  const mVal  = last >= 0 ? mz.macd[last]   : NaN;
+  const sVal  = last >= 0 ? mz.signal[last] : NaN;
+  const hVal  = last >= 0 ? mz.hist[last]   : NaN;
+  const hPrev = prev >= 0 ? mz.hist[prev]   : NaN;
+  const mPrev = prev >= 0 ? mz.macd[prev]   : NaN;
+  const sPrev = prev >= 0 ? mz.signal[prev] : NaN;
+
+  const reasons: string[] = [];
+  let score = 0;
+
+  if (!Number.isNaN(mVal) && !Number.isNaN(sVal)) {
+    const above    = mVal > sVal;
+    const wasAbove = !Number.isNaN(mPrev) && !Number.isNaN(sPrev) && mPrev > sPrev;
+    const crossUp   = above && !wasAbove;
+    const crossDown = !above && wasAbove;
+    if (crossUp)        { score += 2; reasons.push("MACD just crossed ABOVE signal (bullish trigger)"); }
+    else if (crossDown) { score -= 2; reasons.push("MACD just crossed BELOW signal (bearish trigger)"); }
+    else if (above) {
+      if (!Number.isNaN(hVal) && !Number.isNaN(hPrev) && hVal > hPrev) {
+        score += 1; reasons.push("MACD > signal, histogram expanding (bullish momentum)");
+      } else {
+        reasons.push("MACD > signal but histogram contracting (momentum waning)");
+      }
+    } else {
+      if (!Number.isNaN(hVal) && !Number.isNaN(hPrev) && hVal < hPrev) {
+        score -= 1; reasons.push("MACD < signal, histogram expanding down (bearish momentum)");
+      } else {
+        reasons.push("MACD < signal but histogram contracting (downside fading)");
+      }
+    }
+  }
+
+  if (!Number.isNaN(rVal)) {
+    if (rVal >= 70)      { score -= 1; reasons.push(`RSI ${rVal.toFixed(1)} — overbought (>70)`); }
+    else if (rVal <= 30) { score += 1; reasons.push(`RSI ${rVal.toFixed(1)} — oversold (<30)`); }
+    else if (rVal > 50 && !Number.isNaN(rPrev) && rVal > rPrev) {
+      score += 1; reasons.push(`RSI ${rVal.toFixed(1)} — above 50 and rising`);
+    } else if (rVal < 50 && !Number.isNaN(rPrev) && rVal < rPrev) {
+      score -= 1; reasons.push(`RSI ${rVal.toFixed(1)} — below 50 and falling`);
+    } else {
+      reasons.push(`RSI ${rVal.toFixed(1)} — neutral`);
+    }
+  }
+
+  const verdict: Verdict = score >= 2 ? "BUY" : score <= -2 ? "SELL" : "HOLD";
+  return {
+    verdict, score, reasons,
+    rsi:    Number.isNaN(rVal) ? null : rVal,
+    macd:   Number.isNaN(mVal) ? null : mVal,
+    signal: Number.isNaN(sVal) ? null : sVal,
+    hist:   Number.isNaN(hVal) ? null : hVal,
+    histPrev: Number.isNaN(hPrev) ? null : hPrev,
+  };
+}

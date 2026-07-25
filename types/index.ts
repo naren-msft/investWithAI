@@ -26,6 +26,12 @@ export interface TrancheTriggers {
   daysFromStart?: number;        // e.g. 30 — unlocks after N days since P1 anchor
   spyDrawdownPct?: number;       // e.g. 0.05 — unlocks when SPY drops ≥ 5% from anchor peak
   trendConfirmation?: boolean;   // unlocks when regime === "rally"
+  // Absolute calendar trigger — unlocks once wall-clock is ≥ this ISO timestamp.
+  // Use for event-driven phases (FOMC June 17 2026 14:00 ET, earnings, etc.)
+  // so the gate doesn't depend on first-execution-date drift.
+  afterIso?: string;             // e.g. "2026-06-17T18:00:00Z" (FOMC 2pm ET)
+  // Human-readable name for the trigger above (rendered in unmet/met reason).
+  afterIsoLabel?: string;        // e.g. "FOMC June-17 decision (2pm ET)"
 }
 
 export type TrancheStatus = "executed" | "ready" | "locked" | "filled";
@@ -52,6 +58,7 @@ export interface PhaseGateState {
     daysFromStart?: { needed: number; elapsed: number };
     spyDrawdownPct?: { needed: number; actual: number };
     trendConfirmation?: { satisfied: boolean };
+    afterIso?: { needed: string; label?: string };
   };
   status: TrancheStatus;
 }
@@ -70,6 +77,21 @@ export interface Quote {
   price: number;
   changePct: number;
   asOf: string;
+  // Real bid/ask if available — falsy when Yahoo doesn't return them (common
+  // for thin/illiquid names). Consumers MUST guard with > 0.
+  bid?: number;
+  ask?: number;
+  // Average daily volume (last ~30d). Used by data-quality gate to flag
+  // thinly-traded names where last-trade ≠ executable mid.
+  avgVolume?: number;
+  // Per-quote data-quality verdict. `ok` = fresh + price > 0 + volume sane.
+  // `stale` = asOf older than max-age threshold. `invalid` = price <= 0 or
+  // missing. `illiquid` = price ok but avgVolume below threshold.
+  dataQuality: "ok" | "stale" | "invalid" | "illiquid";
+  // Human-readable explanation when dataQuality !== "ok".
+  qualityReason?: string;
+  // Quote spread as decimal (e.g. 0.012 = 1.2%). 0 when bid/ask unavailable.
+  spreadPct?: number;
 }
 
 export interface Candle {
@@ -175,6 +197,9 @@ export type SkippedBuyCode =
   | "fractional-share"
   | "position-cap"
   | "sleeve-cap"
+  | "data-quality"
+  | "leveraged-bear-regime"
+  | "leveraged-non-fomc-day"
   | "insufficient-data"
   | "other";
 
@@ -277,6 +302,40 @@ export interface PipelineResult {
   // Sector overlap snapshot — portfolio-weighted sector exposure (target weights).
   // Empty when overlap fetch failed.
   sectorExposures: { sector: string; effectiveWeight: number }[];
+  // Per-ticker data quality from the Yahoo fetch. Surfaced by Phase1Tickets
+  // and the DataHealthBanner so the user can spot bad/stale/illiquid quotes
+  // before risking real money. Empty array if quotes lookup failed entirely.
+  dataHealth: {
+    ticker: Ticker;
+    dataQuality: "ok" | "stale" | "invalid" | "illiquid";
+    reason?: string;
+    asOf: string;
+    price: number;
+    spreadPct: number;
+    bid?: number;
+    ask?: number;
+    avgVolume?: number;
+  }[];
+  // Oldest-quote timestamp across all tickers — replaces the misleading
+  // "now" used as PipelineResult.asOf. Drives the "last fresh data" banner.
+  marketDataAsOf: string;
+  // Sleeve exposure (current vs target vs cap) — bundle-aware, so FOMC
+  // dashboard sees FOMC sleeves (core-ai-semi / leveraged / hedge / …) not
+  // ETF sleeves. Empty when bundle has no sleeve config.
+  sleeveExposure: {
+    sleeve: string;
+    label: string;
+    currentUsd: number;
+    targetUsd: number;
+    capPct: number | null;
+    capDollars: number | null;
+    currentPct: number;
+    targetPct: number;
+    tickers: string[];
+    overCap: boolean;
+  }[];
+  // Bundle kind echoed for client components that need it (ExposurePanel).
+  bundleKind: "etf" | "stocks" | "fomc";
   agents: AgentResult[];
 }
 

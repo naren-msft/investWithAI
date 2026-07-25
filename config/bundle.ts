@@ -7,18 +7,20 @@ import type { PortfolioConfig, TargetWeight, Tranche } from "@/types";
  * original portfolio (files at data/*.json — kept for backward compatibility);
  * "stocks" is the new individual-stock sleeve (files under data/stocks/*.json).
  */
-export type PortfolioKind = "etf" | "stocks";
+export type PortfolioKind = "etf" | "stocks" | "fomc";
 
 /**
  * Resolve the on-disk directory for a portfolio's persisted data. The ETF
  * sleeve continues to use the repo-root `data/` directory so existing files
  * (executions.json, snapshots.json, regime-state.json) are not migrated.
- * Stocks-sleeve files live under `data/stocks/`.
+ * Stocks-sleeve files live under `data/stocks/`. FOMC-sleeve files live under
+ * `data/fomc/` (separate from `/stocks` so the original demo dashboard is
+ * untouched).
  */
 export function dataDir(kind: PortfolioKind): string {
-  return kind === "etf"
-    ? path.join(process.cwd(), "data")
-    : path.join(process.cwd(), "data", "stocks");
+  if (kind === "etf")    return path.join(process.cwd(), "data");
+  if (kind === "stocks") return path.join(process.cwd(), "data", "stocks");
+  return path.join(process.cwd(), "data", "fomc");
 }
 
 export function dataFile(kind: PortfolioKind, file: string): string {
@@ -50,4 +52,9 @@ export interface PortfolioBundle {
   // Whether to compute ETF-style top-holdings overlap. False for stocks (sector
   // exposure is derived from per-stock sector classification instead).
   computeEtfOverlap: boolean;
+  // N16 — broker supports fractional shares (Fidelity Stock Slices, Schwab
+  // Stock Slices, Robinhood). When true, executionDecision keeps 4-decimal
+  // share quantities instead of rounding down, avoiding "fractional-share"
+  // skips on high-price names like NVDA / AVGO when the tranche is small.
+  allowFractionalShares?: boolean;
 }

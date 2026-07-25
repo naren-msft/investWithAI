@@ -24,21 +24,22 @@ export function OverlapAnalysis({ refreshTick, apiPrefix = "/api" }: { refreshTi
   const [data, setData] = useState<OverlapResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const hasData = data !== null;
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    if (!hasData) setLoading(true);
     fetch(`${apiPrefix}/overlap`)
       .then((r) => r.json())
       .then((j) => {
         if (!alive) return;
-        if (j.error) { setErr(j.error); setData(null); }
-        else setData(j);
+        if (j.error) { setErr(j.error); /* keep old data so card doesn't disappear */ }
+        else { setErr(null); setData(j); }
       })
       .catch((e) => alive && setErr(String(e)))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [refreshTick]);
+  }, [refreshTick, apiPrefix, hasData]);
 
   if (loading) {
     return (

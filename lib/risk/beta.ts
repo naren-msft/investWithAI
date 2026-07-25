@@ -5,6 +5,32 @@ import { getCloseSeries } from "@/lib/yahoo";
 const betaCache = new Map<string, { at: number; value: number }>();
 const CACHE_MS = 60 * 60 * 1000;
 
+// Tier-based beta fallbacks. When a regression returns NaN (insufficient
+// history — common for IPO-era names like CRWV / RBRK or 3× ETFs whose
+// linear-beta breaks down), we use a conviction-tier prior instead of
+// silently defaulting to 1.0 (which would dramatically understate portfolio
+// risk for speculative + leveraged names).
+//
+// Tuning: tier defaults below were chosen to bracket realized 1y beta for
+// representative names from the user's universe (Jan 2024 – Nov 2025):
+//   • core (NVDA 1.7, AVGO 1.4, GOOGL 1.1)            → 1.2 prior
+//   • growth (PLTR 2.3, RBRK n/a, CRWV n/a)           → 1.8 prior
+//   • speculative (HOOD 2.4, FUBO 2.8, NBIS n/a)      → 2.5 prior
+// Leveraged ETFs (SOXL, TQQQ) get a hard 3.0 override regardless of tier
+// because daily-reset 3× products have explicit 3× exposure by design.
+const LEVERAGED_TICKERS = new Set(["SOXL", "TQQQ", "UPRO", "TNA", "FNGU", "LABU"]);
+const TIER_BETA_PRIOR: Record<string, number> = {
+  core: 1.2,
+  growth: 1.8,
+  speculative: 2.5,
+};
+
+export function tierBetaFallback(tier?: string, ticker?: string): number {
+  if (ticker && LEVERAGED_TICKERS.has(ticker)) return 3.0;
+  if (tier && TIER_BETA_PRIOR[tier] != null) return TIER_BETA_PRIOR[tier];
+  return 1.0;
+}
+
 export async function computeEtfBeta(ticker: string): Promise<number> {
   if (ticker === "SPY") return 1.0;
   const cached = betaCache.get(ticker);
@@ -50,21 +76,23 @@ export interface PortfolioBetaResult {
 }
 
 // Portfolio beta = Σ(weight_i × β_i). Caller controls weighting basis (target
-// vs. current allocation).
+// vs. current allocation). Per-position `tier` is used as a fallback when the
+// regression returns NaN (insufficient price history).
 export async function computePortfolioBeta(
-  positions: { ticker: string; weight: number }[],
+  positions: { ticker: string; weight: number; tier?: string }[],
 ): Promise<PortfolioBetaResult> {
   const results = await Promise.all(
-    positions.map(async ({ ticker, weight }) => ({
+    positions.map(async ({ ticker, weight, tier }) => ({
       ticker,
       weight,
+      tier,
       beta: await computeEtfBeta(ticker),
     })),
   );
   const etfBetas: Record<string, number> = {};
   let portfolioBeta = 0;
-  for (const { ticker, weight, beta } of results) {
-    const safe = Number.isFinite(beta) ? beta : 1.0;
+  for (const { ticker, weight, tier, beta } of results) {
+    const safe = Number.isFinite(beta) ? beta : tierBetaFallback(tier, ticker);
     etfBetas[ticker] = safe;
     portfolioBeta += weight * safe;
   }

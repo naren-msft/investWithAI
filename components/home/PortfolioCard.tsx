@@ -48,7 +48,7 @@ export function PortfolioCard({
 
   return (
     <Link href={href} className="group block h-full">
-      <Card className="h-full flex flex-col transition-shadow group-hover:shadow-lg group-hover:border-emerald-500/40">
+      <Card className="card-tilt h-full flex flex-col transition-shadow group-hover:shadow-lg group-hover:border-emerald-500/40">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
             {icon}

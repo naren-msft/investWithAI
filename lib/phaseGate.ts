@@ -78,7 +78,9 @@ export function evaluatePhaseGates(
   anchor: PhaseAnchor,
   regime: Regime,
 ): PhaseGateResult {
-  const deployed = execs.reduce((s, e) => s + e.shares * e.price, 0);
+  // Buys add to phase consumption; sells subtract (treat sells as cash returned
+  // to the phase budget, so user can rebalance mid-tranche without breaking caps).
+  const deployed = execs.reduce((s, e) => s + (e.side === "sell" ? -1 : 1) * e.shares * e.price, 0);
   const states: PhaseGateState[] = [];
 
   let cum = 0;
@@ -96,6 +98,18 @@ export function evaluatePhaseGates(
     const unmet: PhaseGateState["unmet"] = {};
     let gateMet = false;
 
+    if (typeof tr.afterIso === "string") {
+      const t = Date.parse(tr.afterIso);
+      const nowMs = Date.now();
+      const ok = Number.isFinite(t) && nowMs >= t;
+      const labelTxt = tr.afterIsoLabel ?? new Date(tr.afterIso).toISOString();
+      if (ok) {
+        gateMet = true;
+        reasons.push(`past ${labelTxt}`);
+      } else {
+        unmet.afterIso = { needed: tr.afterIso, label: tr.afterIsoLabel };
+      }
+    }
     if (typeof tr.daysFromStart === "number") {
       const ok = anchor.daysSinceStart >= tr.daysFromStart;
       if (ok) { gateMet = true; reasons.push(`${anchor.daysSinceStart}d ≥ ${tr.daysFromStart}d elapsed`); }
@@ -185,6 +199,12 @@ function describeUnmet(unmet: PhaseGateState["unmet"], tr: Tranche["triggers"]):
   }
   if (unmet.trendConfirmation) {
     parts.push("trend not confirmed (need ≥5% drawdown then rally)");
+  }
+  if (unmet.afterIso) {
+    const tgt = new Date(unmet.afterIso.needed);
+    const lbl = unmet.afterIso.label ?? tgt.toISOString();
+    const daysOut = Math.max(0, Math.ceil((tgt.getTime() - Date.now()) / 86_400_000));
+    parts.push(`waiting for ${lbl} (~${daysOut}d)`);
   }
   return parts.length > 0 ? `Locked — ${parts.join(" · ")}.` : "Locked.";
 }

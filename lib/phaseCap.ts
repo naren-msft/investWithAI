@@ -18,7 +18,7 @@ export interface PhaseCap {
 // function preserves the original dollar-cumulative logic so callers that just
 // need budget bookkeeping (independent of triggers) keep working.
 export function phaseCap(tranches: readonly Tranche[], execs: Execution[]): PhaseCap {
-  const deployed = execs.reduce((s, e) => s + e.shares * e.price, 0);
+  const deployed = execs.reduce((s, e) => s + (e.side === "sell" ? -1 : 1) * e.shares * e.price, 0);
   let cum = 0;
   let prevCum = 0;
   for (const t of tranches) {

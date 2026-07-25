@@ -72,17 +72,18 @@ export function InvalidationWatch({
 }) {
   const [data, setData] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasData = data !== null;
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    if (!hasData) setLoading(true);
     fetch(`${apiPrefix}/elliott-wave`)
       .then((r) => r.json())
       .then((j) => alive && setData(j))
-      .catch(() => alive && setData(null))
+      .catch(() => { /* keep last-known data to prevent flicker on auto-refresh */ })
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [refreshTick, apiPrefix]);
+  }, [refreshTick, apiPrefix, hasData]);
 
   if (loading) {
     return (

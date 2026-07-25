@@ -4,238 +4,260 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { HelpLink } from "@/components/ui/HelpLink";
 import { AlertTriangle } from "lucide-react";
-import Link from "next/link";
-import { runScreener } from "@/lib/screener";
-import type { ScreenerMode } from "@/lib/screener/types";
+import { runScreener } from "@/lib/ross";
+import { resolveThresholds, ROSS_DEFAULTS, ROSS_PROFILE } from "@/config/ross";
+import { resolveLargecapThresholds, LARGECAP_DEFAULTS, LARGECAP_PROFILE } from "@/config/largecap";
 import { DisclosureBanner } from "@/components/screener/DisclosureBanner";
-import { ThemeMap } from "@/components/screener/ThemeMap";
-import { ScreenerTable } from "@/components/screener/ScreenerTable";
+import { RossTable } from "@/components/ross/RossTable";
+import { RossControls } from "@/components/ross/RossControls";
+import { LargecapControls } from "@/components/ross/LargecapControls";
+import { BookTabs } from "@/components/ross/BookTabs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+interface ScreenerSearchParams {
+  book?: string;
+  maxPrice?: string;
+  minPrice?: string;
+  minChange?: string;
+  minRvol?: string;
+  strongMomentum?: string;
+  maxFloat?: string;
+  minMarketCap?: string;
+}
+
+function fmtUsd(v: number): string {
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(0)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${Math.round(v)}`;
+}
+
 export default async function ScreenerPage({
   searchParams,
 }: {
-  searchParams?: { mode?: string; discovery?: string };
+  searchParams?: ScreenerSearchParams;
 }) {
-  const modeParam = searchParams?.mode;
-  const mode: ScreenerMode | undefined =
-    modeParam === "gem" ? "gem" : modeParam === "classic" ? "classic" : undefined;
-  const discoveryParam = searchParams?.discovery;
-  const discovery = discoveryParam === "on" ? true : discoveryParam === "off" ? false : undefined;
+  const book: "small" | "large" = searchParams?.book === "large" ? "large" : "small";
+  const isLarge = book === "large";
+
+  const thresholds = isLarge
+    ? resolveLargecapThresholds({
+        maxPrice: searchParams?.maxPrice,
+        minPrice: searchParams?.minPrice,
+        minChangePct: searchParams?.minChange,
+        minRvol: searchParams?.minRvol,
+        strongMomentumPct: searchParams?.strongMomentum,
+        minMarketCap: searchParams?.minMarketCap,
+      })
+    : resolveThresholds({
+        maxPrice: searchParams?.maxPrice,
+        minPrice: searchParams?.minPrice,
+        minChangePct: searchParams?.minChange,
+        minRvol: searchParams?.minRvol,
+        strongMomentumPct: searchParams?.strongMomentum,
+        maxFloat: searchParams?.maxFloat,
+      });
+
+  const profile = isLarge ? LARGECAP_PROFILE : ROSS_PROFILE;
+  const apiPath = isLarge ? "/api/largecap" : "/api/ross";
 
   let data;
   try {
-    data = await runScreener({ mode, discovery });
-  } catch (e: any) {
+    data = await runScreener({ thresholds, profile });
+  } catch (e: unknown) {
     return (
       <main className="max-w-6xl mx-auto p-6">
         <Card className="border-red-500/30">
           <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
             <AlertTriangle className="w-4 h-4" />
-            <h2 className="font-semibold">Failed to load screener data</h2>
+            <h2 className="font-semibold">Failed to load Screener</h2>
           </div>
-          <p className="text-sm subtle mt-2">{String(e?.message ?? e)}</p>
+          <p className="text-sm subtle mt-2">{String((e as Error)?.message ?? e)}</p>
           <p className="text-xs subtle mt-2">
-            The screener fetches live fundamentals + price history from Yahoo Finance. Refresh to retry.
+            The Screener pulls live movers from TradingView (with a Yahoo Finance fallback). Refresh to retry.
           </p>
         </Card>
       </main>
     );
   }
 
-  const passed = data.rows.filter((r) => r.passedAll).length;
   const total = data.rows.length;
-  const highConfidence = data.rows.filter((r) => r.confidence.band === "high").length;
-  const mediumConfidence = data.rows.filter((r) => r.confidence.band === "medium").length;
-  const isGem = data.mode === "gem";
-  const otherMode: ScreenerMode = isGem ? "classic" : "gem";
+  const fmtFloatM = (n: number) => `${(n / 1_000_000).toFixed(0)}M`;
+  const pillar5Summary = isLarge
+    ? `mkt cap ≥ ${fmtUsd(thresholds.minMarketCap)}`
+    : `float < ${fmtFloatM(thresholds.maxFloat)}`;
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
-      <DashboardHeader label="Stock Screener" />
+      <DashboardHeader label="Ross Screener" />
       <DisclosureBanner />
 
       <Card>
+        <div className="mb-3">
+          <BookTabs book={book} />
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="text-xl font-semibold text-ink">
-                {isGem ? "Gem Discovery Screener" : "Early-Trend Stock Screener"}
+                {isLarge
+                  ? "Large-Cap — 5 Pillars (S\u0026P 500 / mega-cap)"
+                  : "Ross Screener — 5 Pillars Momentum"}
               </h1>
               <HelpLink section="screener-overview" />
             </div>
             <p className="text-xs subtle mt-0.5">
-              {total} tickers across {data.themes.length} secular themes ·
+              {total} live movers ·{" "}
+              band ${thresholds.minPrice}–${thresholds.maxPrice} · RVol ≥ {thresholds.minRvol}× ·
+              change ≥ +{thresholds.minChangePct}% · {pillar5Summary} ·
               evaluated {new Date(data.asOf).toLocaleString()}
-              {data.discoveryUsed ? " · discovery feed on" : ""}
+              {" · source: "}
+              {data.universeSource === "tradingview" ? "TradingView" : data.universeSource === "yahoo" ? "Yahoo (fallback)" : "none"}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 rounded-md border border-line bg-bg/50 p-0.5 text-xs">
-              <Link
-                href="/screener?mode=classic"
-                className={`px-2 py-1 rounded ${!isGem ? "bg-ink/10 text-ink font-semibold" : "subtle"}`}
-              >
-                Classic
-              </Link>
-              <Link
-                href="/screener?mode=gem"
-                className={`px-2 py-1 rounded ${isGem ? "bg-ink/10 text-ink font-semibold" : "subtle"}`}
-              >
-                Gem
-              </Link>
-            </div>
-            <Badge variant="success">{passed} pass all 3 gates</Badge>
-            <Badge variant="info">{highConfidence} high conf</Badge>
-            <Badge variant="warn">{mediumConfidence} medium conf</Badge>
+            <Badge variant="success">{data.greenCount} pass all automated checks</Badge>
+            <Badge variant="warn">{data.strongCount} 🔥 strong</Badge>
+            <Badge variant="info">{data.risingCount} 📈 rising AH/PM</Badge>
+            <Badge variant="success">{data.withNewsCount} 📰 with catalyst</Badge>
+            {data.customThresholds && <Badge variant="info">custom thresholds</Badge>}
+            <Badge variant={data.newsSource.startsWith("Finnhub") ? "success" : "info"}>
+              📡 {data.newsSource}
+            </Badge>
           </div>
         </div>
-        {isGem && (
-          <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-ink/90">
-            <strong>Gem mode active.</strong>{" "}
-            The scoring rebalances toward early-discovery signals: PEG-based GARP screening,
-            EPS revision momentum (PEAD), insider cluster buying (Seyhun 1986), relative strength
-            vs SPY, base length, volume thrust, and an inverted analyst-coverage bonus for
-            emerging/venture names. Correction-regime veto is softened (only Watch-only when
-            fundamentals or moat also fail). Newly-listed tickers route through a post-IPO base
-            evaluator.{" "}
-            <Link href={`/screener?mode=${otherMode}`} className="underline">Switch to {otherMode}</Link>.
+
+        {data.warnings.length > 0 && (
+          <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-2 text-[11px] text-amber-800 dark:text-amber-200">
+            {data.warnings.join(" ")}
           </div>
         )}
+
+        <div className="mt-3">{isLarge ? <LargecapControls /> : <RossControls />}</div>
       </Card>
 
       <CollapsibleCard
-        storageKey="card:screener-themes"
-        helpSection="screener-themes"
-        title="Theme map"
-        subtitle="9 secular themes — pass counts and conviction-tier distribution"
-        summary={
-          <p className="text-xs subtle">
-            {data.themes.map((t) => `${t.label} ${t.counts.passed}/${t.counts.total}`).join(" · ")}
-          </p>
+        storageKey="card:ross-watchlist"
+        helpSection="screener-overview"
+        title={isLarge ? "Large-cap watchlist" : "Momentum watchlist"}
+        subtitle={
+          isLarge
+            ? "5 Pillars tuned for large caps — green rows meet every automated pillar. Click a row for the pillar + catalyst-news breakdown."
+            : "Ross Cameron 5 Pillars — green rows meet every automated pillar. Click a row for the pillar + catalyst-news breakdown."
         }
-      >
-        <ThemeMap themes={data.themes} />
-      </CollapsibleCard>
-
-      <CollapsibleCard
-        storageKey="card:screener-ranked"
-        helpSection="screener-confidence"
-        title="Ranked watchlist"
-        subtitle="Sorted by confidence score. Click any row for the gate breakdown."
         summary={<p className="text-xs subtle">{rows1Line(data.rows.slice(0, 8))}</p>}
       >
-        <ScreenerTable result={data} />
+        <RossTable result={data} apiPath={apiPath} />
       </CollapsibleCard>
 
       <CollapsibleCard
-        storageKey="card:screener-methodology"
+        storageKey="card:ross-methodology"
         helpSection="screener-overview"
-        title="Methodology"
-        subtitle={isGem
-          ? "3-gate gem screen — rebalanced for early discovery"
-          : "3-gate pipeline, confidence scoring, tranche splits"}
+        title={isLarge ? "Methodology — the 5 Pillars (large-cap tuning)" : "Methodology — the 5 Pillars"}
+        subtitle={
+          isLarge
+            ? "Same structure as the Ross momentum filter, re-tuned for large caps (thresholds adjustable above)"
+            : "Ross Cameron / Warrior Trading momentum day-trading criteria (thresholds adjustable above)"
+        }
       >
-        <div className="space-y-3 text-sm text-ink/90">
-          <div>
-            <h4 className="font-semibold text-ink mb-1">Gate 1 — Fundamentals (40 points)</h4>
-            <p className="text-xs subtle">
-              {isGem ? (
-                <>
-                  Gem mode trims the classic FCF/margin/D-E weights to free budget for
-                  <strong> PEG (Lynch GARP, up to 5)</strong>,
-                  <strong> EPS estimate revision direction (Bernard & Thomas 1989 PEAD, up to 4)</strong>,
-                  and a <strong>5-point Piotroski fundamental-quality proxy (up to 6)</strong> —
-                  designed to surface compounders that haven&apos;t yet earned consensus attention.
-                </>
-              ) : (
-                <>
-                  Revenue growth, margins, free cash flow, balance sheet, return on equity.
-                  Thresholds are <strong>tier-aware</strong>: Core requires positive FCF + 15% rev growth + 45% gross margin;
-                  Emerging relaxes to 25% rev growth + 35% gross margin (FCF optional); Venture is a sanity check only.
-                </>
-              )}
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-ink mb-1">Gate 2 — Moat & Positioning (25 points)</h4>
-            <p className="text-xs subtle">
-              {isGem ? (
-                <>
-                  Chokepoint (8) + analyst consensus (6) + institutional ownership (4) +
-                  <strong> inverted neglect bonus</strong> — emerging/venture names with ≤3 analysts
-                  get +3 (Arbel et al. 1983 neglect premium) — plus
-                  <strong> insider cluster buying</strong> (Seyhun 1986): ≥3 distinct insider purchasers in 90d earns +4,
-                  cross-checked against `netSharePurchaseActivity`.
-                </>
-              ) : (
-                <>
-                  Manual chokepoint statement (8 pts) anchors why the company is non-optional in its value chain.
-                  Quantitative proxies: analyst consensus ≤2.5, institutional ownership, coverage breadth, target upside.
-                </>
-              )}
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-ink mb-1">Gate 3 — Market Confirmation (20 points)</h4>
-            <p className="text-xs subtle">
-              {isGem ? (
-                <>
-                  Partial Minervini (10) + <strong>relative strength vs SPY</strong> (3, Mansfield/O&apos;Neil) +
-                  <strong> frog-in-pan stealth grind</strong> (2, Da/Gurun/Warachka 2014) +
-                  <strong> volume thrust</strong> (2, CANSLIM) + <strong>base length</strong> (3 — tighter is better).
-                  Post-IPO names (&lt;18 months trading) route through a dedicated 3-check base evaluator
-                  (price above IPO low, 20-day momentum, volume thrust).
-                </>
-              ) : (
-                <>
-                  Minervini Trend Template — 8 conditions checking that price + 50/150/200-DMA stack is in confirmed Stage-2
-                  uptrend, within 25% of 52-wk high, RSI 50-80, MACD bullish. Venture names use a 4-condition relaxed variant.
-                </>
-              )}
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-ink mb-1">Confidence score (0-100)</h4>
-            <p className="text-xs subtle">
-              {isGem ? (
-                <>
-                  Same band cutoffs (75 / 55 / 35) but a <strong>softened regime modifier</strong>:
-                  rally +2, neutral 0, pullback +3 (favorable gem entry), correction −2.
-                  Correction no longer auto-forces Watch-only unless Gate 1 OR Gate 2 also fails —
-                  pullbacks become opportunities for high-conviction discovery names.
-                </>
-              ) : (
-                <>
-                  Sum of gates (85) + data quality (10) + market regime (±5). Bands: High ≥75 · Medium 55-74 · Low 35-54 · Watch-only &lt;35.
-                  In SPY <em>correction</em>, every name is forced to Watch-only regardless of fundamentals — we don&apos;t fight the tape.
-                </>
-              )}
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-ink mb-1">Tranche splits (advisory)</h4>
-            <p className="text-xs subtle">
-              Core <span className="font-mono">50/25/25</span> ·
-              Emerging <span className="font-mono">40/30/30</span> ·
-              Venture <span className="font-mono">33/33/33</span> —
-              tighter staging for higher-uncertainty names.
-            </p>
-          </div>
-        </div>
+        {isLarge ? <LargecapMethodology /> : <RossMethodology />}
       </CollapsibleCard>
 
       <footer className="mt-6 p-4 text-xs subtle border-t border-line">
         <strong className="text-ink/80">Educational use only — not investment advice.</strong>{" "}
-        Live fundamentals + price data from Yahoo Finance. Moat anchors are manual; scoring is deterministic.
-        Venture-tagged tickers (quantum, frontier biotech) carry materially elevated loss risk.
+        Live movers from TradingView (Yahoo Finance fallback); positive catalyst news from {data.newsSource}
+        {" "}(bullish-filtered, rolling 24h); extended-hours (pre/after-market) from Yahoo; click a ticker for its
+        live TradingView chart.{" "}
+        {isLarge
+          ? `Large-cap defaults: ${`$${LARGECAP_DEFAULTS.minPrice}–$${LARGECAP_DEFAULTS.maxPrice} price, ${LARGECAP_DEFAULTS.minRvol}× RVol, +${LARGECAP_DEFAULTS.minChangePct}%, mkt cap ≥ ${fmtUsd(LARGECAP_DEFAULTS.minMarketCap)}`}.`
+          : `Defaults follow Ross Cameron\u2019s published 5 Pillars (${`$${ROSS_DEFAULTS.minPrice}–$${ROSS_DEFAULTS.maxPrice}, ${ROSS_DEFAULTS.minRvol}× RVol, +${ROSS_DEFAULTS.minChangePct}%, <10M float`}).`}
       </footer>
     </main>
   );
 }
 
-function rows1Line(rows: import("@/lib/screener/types").ScreenerRow[]): string {
-  return rows.map((r) => `${r.ticker} ${r.confidence.total}`).join(" · ");
+function RossMethodology() {
+  return (
+    <div className="space-y-3 text-sm text-ink/90">
+      <Pillar n={1} title="Relative Volume ≥ 5×">
+        Today&apos;s volume vs its 30-day average. High RVol confirms real interest and liquidity.
+        (Computed from TradingView&apos;s 30-day average volume — threshold adjustable.)
+      </Pillar>
+      <Pillar n={2} title="Daily % change ≥ 10%">
+        The stock must already be in motion — demand is present, not hypothetical.
+      </Pillar>
+      <Pillar n={3} title="News catalyst (positive only)">
+        Breaking news should justify the move (earnings, FDA, contract, partnership). Each row&apos;s
+        breakdown lists only <strong>bullish</strong> headlines from the after-hours → overnight →
+        pre-market window, with summary, ET timestamp and source. A 🔥 marks names moving ≥ 15% and
+        📈 marks names still rising in the pre/after-hours session; <strong>always verify the catalyst yourself</strong>.
+      </Pillar>
+      <Pillar n={4} title="Price $1–$20 (adjustable)">
+        Ross&apos;s small-cap momentum sweet spot. Use the control above to widen to $50, $100, or a custom max.
+      </Pillar>
+      <Pillar n={5} title="Float < 10M shares">
+        Low float creates supply/demand imbalances that fuel explosive intraday moves. When float data is
+        unavailable it is flagged <em>N/A</em> (verify on Finviz) rather than failing the pillar — matching the source script.
+      </Pillar>
+      <GreenNote />
+    </div>
+  );
+}
+
+function LargecapMethodology() {
+  return (
+    <div className="space-y-3 text-sm text-ink/90">
+      <Pillar n={1} title="Relative Volume ≥ 1.5×">
+        Today&apos;s volume vs its 30-day average. Large caps rarely spike 5× like small caps, so the bar
+        is lower — but elevated RVol still confirms unusual interest. (Computed from TradingView&apos;s
+        30-day average volume — threshold adjustable.)
+      </Pillar>
+      <Pillar n={2} title="Daily % change ≥ 3%">
+        A meaningful move for a mega-cap. The stock must already be in motion — demand is present, not hypothetical.
+      </Pillar>
+      <Pillar n={3} title="News catalyst (positive only)">
+        Breaking news should justify the move (earnings, guidance, upgrade, contract, M&amp;A). Each row&apos;s
+        breakdown lists only <strong>bullish</strong> headlines from the after-hours → overnight →
+        pre-market window, with summary, ET timestamp and source. A 🔥 marks names moving ≥ 5% and
+        📈 marks names still rising in the pre/after-hours session; <strong>always verify the catalyst yourself</strong>.
+      </Pillar>
+      <Pillar n={4} title="Price $10–$100,000 (adjustable)">
+        Effectively no upper cap — large caps trade across a wide price range. Use the control above to narrow the band.
+      </Pillar>
+      <Pillar n={5} title="Large cap: market cap ≥ $10B">
+        The large-cap floor (replaces Ross&apos;s &lt;10M-share float pillar). Bigger, more liquid names with
+        deep institutional ownership. Adjust to $50B / $200B / $1T to focus on mega-caps.
+      </Pillar>
+      <GreenNote />
+    </div>
+  );
+}
+
+function GreenNote() {
+  return (
+    <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
+      <strong className="text-emerald-700 dark:text-emerald-300">Green background = all automated pillars met.</strong>{" "}
+      It is a scan signal, not a buy signal — confirm the news catalyst (Pillar 3) and your risk plan first.
+    </div>
+  );
+}
+
+function Pillar({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h4 className="font-semibold text-ink mb-1">
+        {n}️⃣ {title}
+      </h4>
+      <p className="text-xs subtle">{children}</p>
+    </div>
+  );
+}
+
+function rows1Line(rows: import("@/lib/ross/types").RossRow[]): string {
+  return rows
+    .map((r) => `${r.ticker} ${r.candidate.changePct != null ? (r.candidate.changePct > 0 ? "+" : "") + r.candidate.changePct.toFixed(0) + "%" : ""}`)
+    .join(" · ");
 }

@@ -1,6 +1,6 @@
 # InvestWithAI — Portfolio Dashboard & Stock Screener
 
-Multi-agent allocation dashboard with a staged-deployment plan for an **ETF** book and a **Stocks** book, plus a 3-gate **Screener** for research. Live Yahoo Finance data, no API keys.
+Multi-agent allocation dashboard with a staged-deployment plan for an **ETF** book and a **Stocks** book, an event-keyed **FOMC** playbook, plus a dual-book (Ross + Large-Cap) 5-Pillars **Screener** for research. Live Yahoo Finance data, no API keys.
 
 > **Educational / demo project — not investment advice.** Capital, tickers, and allocations in `config/*.ts` are examples; edit for your own use. No warranty.
 
@@ -10,7 +10,8 @@ Multi-agent allocation dashboard with a staged-deployment plan for an **ETF** bo
 |-------------|-----------------------------------------------------------------------------------------|
 | `/`         | ETF dashboard — broad-market core, staged deployment                                    |
 | `/stocks`   | Single-stock dashboard — tier-aware sizing, Elliott Wave overlay                        |
-| `/screener` | 3-gate screener with classic (Minervini) and gem-discovery modes (`?mode=gem`)          |
+| `/fomc`     | FOMC June-17 playbook — CUT/HOLD/HIKE scenarios, 4-phase event-keyed deployment, $700K, intraday charts, watchlist, broker CSV import |
+| `/screener` | **5-Pillars Screener** — toggle between the **Ross** (small-cap momentum) and **Large-Cap** (S&P 500 / mega-cap) books over live movers (adjustable thresholds) |
 | `/help`     | Full reference for every dashboard section                                              |
 
 ## Pipeline (ETF + Stocks)
@@ -33,30 +34,50 @@ Plus a 4-mode SPY regime detector (Rally / Neutral / Pullback / Correction) that
 
 `lib/elliott-wave/counter.ts` — self-contained ZigZag pivot detector + 5-wave impulse fitter that enforces the three EW rules (W2 ≤ W1, W3 not shortest, W4 no overlap with W1), Fibonacci scoring, and a post-impulse phase classifier. Each ticker gets a phase label (W1–W5 / A / B / C), an invalidation price, and a STRONG BUY / BUY / HOLD / CAUTION / AVOID signal. Manual overrides in `config/elliott-wave.json`. **Display only** — does not feed position sizing.
 
-## Screener (`/screener`)
+## 5-Pillars Screener (`/screener`)
 
-3 independent gates → 0–100 confidence + `passedAll`. Gate maxScores are fixed at **40 / 25 / 20** in both modes; gem mode rebalances *within* those budgets.
+The screener runs a shared **5 Pillars** engine (`config/screenerProfile.ts` → `runScreener`) that can be pointed at two books via the on-page **BookTabs** toggle:
 
-### Modes
+- **Ross** — Ross Cameron's (Warrior Trading) small-cap momentum filter (default).
+- **Large-Cap** — an S&P 500 / mega-cap re-tuning of the same pillars, where the thresholds that are impossible for large caps (5× RVol / +10% day / $1–$20 price / <10M float) are relaxed and **Pillar 5 flips from "low float" to "market cap ≥ $10B"** (`config/largecap.ts`, served by `app/api/largecap/route.ts`).
 
-| Mode      | Query                          | Use case                                                  |
-|-----------|--------------------------------|-----------------------------------------------------------|
-| Classic   | `?mode=classic` (default)      | Minervini Stage-2 confirmation — leaders already in motion |
-| Gem       | `?mode=gem`                    | Early-upside discovery — accepts more noise for earlier entries |
-| Discovery | `?mode=gem&discovery=on`       | Adds ≤25 net-new tickers from ARKK / ARKG / SMH / XBI / KWEB / ICLN |
+Candidates are pulled from the **TradingView** public scanner (filtered server-side by the pillars), with a **Yahoo Finance** fallback (`small_cap_gainers` / `day_gainers` / `aggressive_small_caps`). A row shows a **green background** when all *automated* pillars pass.
 
-### Gates
+### The 5 Pillars (Ross book)
 
-1. **Fundamentals (40)** — growth, margins, FCF, D/E. *Gem adds:* PEG (Lynch), EPS revision direction (Bernard & Thomas PEAD), 5-point Piotroski proxy.
-2. **Moat (25)** — chokepoint, analyst consensus, institutional ownership. *Gem adds:* neglect premium for ≤3-analyst names (Arbel 1983), insider cluster count (conservative purchase allowlist + 90d window).
-3. **Trend (20)** — Minervini trend template. *Gem adds:* relative strength vs. SPY (Mansfield/O'Neil), frog-in-pan stealth grind (Da/Gurun/Warachka 2014), volume thrust, base length. Names <18 months old route to an early-IPO branch with relaxed conditions.
+| # | Pillar            | Default        | Notes                                                             |
+|---|-------------------|----------------|-------------------------------------------------------------------|
+| 1 | Relative Volume   | ≥ 5×           | TradingView 10-day RVol used as proxy                             |
+| 2 | Daily % change    | ≥ +10%         | Already in motion                                                 |
+| 3 | News catalyst     | manual (🔥 ≥15%)| Green catalyst headlines since previous close; verify yourself    |
+| 4 | Price range       | $1–$20         | **Adjustable** — $20 / $50 / $100 / custom                        |
+| 5 | Float             | < 10M shares   | N/A is flagged for manual check, **not** failed (matches script)  |
 
-### Regime modifier
-- **Classic:** rally +3, neutral 0, pullback −3, correction → watch-only
-- **Gem:** rally +2, neutral 0, **pullback +3** (entry zone), correction only vetoes if Gate 1 or Gate 2 also fail
+### Adjustable thresholds
+All thresholds are user-adjustable at runtime via the in-page control and URL query params — e.g. `?maxPrice=100&minRvol=5&minChange=10&maxFloat=10000000`. `config/ross.ts` holds the Ross defaults + `resolveThresholds()` (clamps overrides to safe ranges); the price band, RVol, change % and float are applied server-side in the scanner. Results are cached 5 min per threshold set.
 
-### UI extras
-🔥 squeeze badge (short interest + days-to-cover, not scored) · `disc` badge for discovery-feed tickers · per-row drill-down of every gate check.
+### Extended hours (gap-and-go)
+Ross's "gap and go" wants names already bidding **up** after the close and continuing into the pre-market. `lib/ross/extendedHours.ts` reads Yahoo's keyless `quote` endpoint for `marketState` (PRE / REGULAR / POST / …) plus pre- and post-market change %, flags candidates that are *rising* in extended hours, and normalizes the exchange prefix. Best-effort — never throws.
+
+### News & sentiment
+Latest headlines per pick published **since the previous market close** (after-hours + pre-market catalyst window). Source is **Yahoo Finance** search by default, or **Finnhub** company-news (`lib/ross/finnhub.ts`) for near-real-time, minute-level breaking headlines when `FINNHUB_API_KEY` is set — otherwise the Finnhub path is a transparent no-op. Headlines pass through a keyword **sentiment** scorer (`lib/ross/sentiment.ts`) that up-weights bullish momentum language and drops negative/neutral ones, so only green catalysts are surfaced. Google Finance deep-links per row for manual research.
+
+### Code
+`config/ross.ts` · `config/largecap.ts` · `config/screenerProfile.ts` (shared profile abstraction) · `lib/ross/{tradingview,yahooFallback,extendedHours,pillars,sentiment,news,finnhub,index}.ts` · `app/api/ross/route.ts` + `app/api/largecap/route.ts` (legacy `/api/screener` is a shim) · `components/ross/{RossTable,PillarBreakdown,RossControls,LargecapControls,BookTabs}.tsx`.
+
+> Educational/demo only — day trading is extremely high risk and most day traders lose money.
+
+## FOMC playbook (`/fomc`)
+
+An event-keyed `$700K` deployment book for the June-17 FOMC decision with **CUT / HOLD / HIKE / neutral** scenario weight columns (`config/fomc.ts` + `config/fomc-scenarios.ts`) and a 4-phase schedule gated off the announcement window in ET. Extras:
+
+- **Intraday charts** (`components/IntradayChart.tsx`, `app/api/fomc/intraday`) — per-ticker session price action.
+- **Watchlist** (`components/WatchlistPanel.tsx`, `config/fomc-watchlist.ts`) — scenario-tagged tickers to monitor.
+- **Broker CSV import** (`lib/brokerImport.ts`, `app/api/fomc/import`) — normalizes **Fidelity / Schwab / Robinhood** (and a generic) export into the execution log, reporting imported vs. skipped rows.
+- **Data-health banner** (`components/DataHealthBanner.tsx`) surfaces stale/failed quote fetches.
+
+All time gates and labels run through `lib/marketTime.ts` (US-ET, DST-aware) so a UTC midnight never gets compared against a 2pm-ET announcement.
+
 
 ## Run
 
@@ -65,7 +86,7 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-No env vars required. Optional: `CAPITAL`, `CASH_BUFFER`, `SCREENER_MODE`, `SCREENER_DISCOVERY`. First load fetches ~9 months of daily candles per ticker + SPY; subsequent loads hit a 5-min cache.
+No env vars required. Optional: `CAPITAL`, `CASH_BUFFER`, `SCREENER_MODE`, `SCREENER_DISCOVERY`, and `FINNHUB_API_KEY` (Ross Screener near-real-time catalyst news — free key at [finnhub.io](https://finnhub.io/register); falls back to Yahoo when unset). First load fetches ~9 months of daily candles per ticker + SPY; subsequent loads hit a 5-min cache.
 
 ## Tech
 
@@ -78,13 +99,18 @@ app/                      # routes + API handlers (quotes, history, pipeline, ex
 components/               # UI: TickerMarquee, RegimeBanner, AllocationTable, ScreenerTable, …
 lib/
   yahoo.ts, indicators.ts, regime.ts, phaseGate.ts, store.ts
+  marketTime.ts            # US-ET (DST-aware) gate helpers for the FOMC playbook
+  brokerImport.ts          # Fidelity/Schwab/Robinhood CSV → execution log
   agents/                 # 5-agent pipeline (portfolioState → executionDecision)
   elliott-wave/           # ZigZag + impulse fitter + phase classifier
-  screener/               # types, fundamentals, moat, trend, score, momentum, discovery
+  ross/                   # 5 Pillars engine: tradingview, yahooFallback, pillars, news, index
 config/
   portfolio.ts            # ETF book: capital, buffer, targets, tranches
   stocks.ts               # Stocks book: capital, tier-aware caps
-  screener-themes.ts      # screener universe by theme
+  ross.ts                 # Ross Screener thresholds + resolveThresholds()
+  largecap.ts             # Large-Cap screener thresholds (market-cap floor)
+  screenerProfile.ts      # shared profile abstraction (ross | largecap)
+  fomc.ts, fomc-scenarios.ts, fomc-watchlist.ts   # FOMC playbook + watchlist
   elliott-wave.json       # manual EW overrides
 data/                     # execution logs (gitignored)
 ```
@@ -94,11 +120,13 @@ data/                     # execution logs (gitignored)
 Everything is config-driven. Edit:
 - `config/portfolio.ts` — ETF targets (weights sum to 1.0), tranche plan
 - `config/stocks.ts` — stock universe with `tier: core | growth | speculative` (drives caps + ZigZag thresholds)
-- `config/screener-themes.ts` — screener universe by theme; each entry tagged `leader | emerging | venture`
+- `config/fomc.ts` + `config/fomc-scenarios.ts` — FOMC playbook universe, per-scenario weight columns (CUT/HOLD/HIKE/neutral), event-keyed phase schedule
+- `config/ross.ts` — Ross Screener 5-Pillar thresholds (min RVol, min change %, price band, max float) + safe-clamp ranges
+- `config/largecap.ts` + `config/screenerProfile.ts` — Large-Cap screener thresholds (market-cap floor) and the shared profile abstraction
 - `config/elliott-wave.json` — manual wave-count overrides (set `phase` ≠ `"UNKNOWN"` to skip auto-counter)
 - `lib/agents/signalAnalysis.ts` — RSI/MACD thresholds
 - `lib/regime.ts` — regime sensitivity + multipliers
-- `lib/screener/{fundamentals,moat,trend,score}.ts` — screener thresholds (classic + gem variants)
+- `lib/ross/index.ts` + `config/ross.ts` — Ross Screener candidate sourcing, pillar thresholds, news window
 
 Capital and cash buffer also have an in-dashboard "Edit sizing" control (persists per browser, supports `?capital=…&buffer=…` URL override).
 

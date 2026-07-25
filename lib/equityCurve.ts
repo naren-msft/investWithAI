@@ -78,10 +78,11 @@ export async function computeEquityCurve(
   for (const d of dates) {
     while (execIdx < sorted.length && sorted[execIdx].date <= d) {
       const e = sorted[execIdx];
-      sharesByTicker.set(e.ticker, (sharesByTicker.get(e.ticker) ?? 0) + e.shares);
-      runningCost += e.shares * e.price;
+      const sign = e.side === "sell" ? -1 : 1;
+      sharesByTicker.set(e.ticker, (sharesByTicker.get(e.ticker) ?? 0) + sign * e.shares);
+      runningCost += sign * e.shares * e.price;
       const spyPxOnExec = spyByDate.get(e.date) ?? spyByDate.get(d) ?? 0;
-      if (spyPxOnExec > 0) spySharesAccum += (e.shares * e.price) / spyPxOnExec;
+      if (spyPxOnExec > 0) spySharesAccum += (sign * e.shares * e.price) / spyPxOnExec;
       execIdx++;
     }
     let mv = 0;

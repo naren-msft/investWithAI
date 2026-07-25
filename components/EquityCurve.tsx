@@ -37,21 +37,26 @@ export function EquityCurve({ refreshTick, apiPrefix = "/api" }: { refreshTick?:
   const [metrics, setMetrics] = useState<RiskMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const hasData = points.length > 0;
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    // Don't flip back into the loading state once we have data — that swaps
+    // the chart out for a placeholder on every auto-refresh tick, which is
+    // exactly the flicker users see. Keep the old chart on screen until the
+    // new payload arrives, then replace it.
+    if (!hasData) setLoading(true);
     fetch(`${apiPrefix}/equity-curve`)
       .then((r) => r.json())
       .then((j) => {
         if (!alive) return;
-        if (j.error) { setErr(j.error); setPoints([]); setMetrics(null); }
-        else { setPoints(j.points ?? []); setMetrics(j.metrics ?? null); }
+        if (j.error) { setErr(j.error); /* keep existing points so chart doesn't disappear */ }
+        else { setErr(null); setPoints(j.points ?? []); setMetrics(j.metrics ?? null); }
       })
       .catch((e) => alive && setErr(String(e)))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
-  }, [refreshTick]);
+  }, [refreshTick, apiPrefix, hasData]);
 
   const summary = useMemo(() => {
     if (points.length === 0) return null;

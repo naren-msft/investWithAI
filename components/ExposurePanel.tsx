@@ -8,7 +8,7 @@ import { sectorMixFromExposures } from "@/lib/risk/sectorMix";
 import { HelpLink } from "@/components/ui/HelpLink";
 
 interface SleeveRow {
-  sleeve: SleeveGroup;
+  sleeve: string;
   label: string;
   tickers: string[];
   currentUsd: number;
@@ -16,6 +16,9 @@ interface SleeveRow {
   driftUsd: number;
   currentPct: number;
   targetPct: number;
+  capPct?: number | null;
+  capDollars?: number | null;
+  overCap?: boolean;
 }
 
 function aggregate(drift: DriftRow[], totalPortfolio: number): SleeveRow[] {
@@ -55,13 +58,37 @@ function aggregate(drift: DriftRow[], totalPortfolio: number): SleeveRow[] {
 }
 
 export function ExposurePanel({ data }: { data: PipelineResult }) {
-  const sleeves = aggregate(data.drift, data.portfolioValue);
-  const totalEquityCurrent = sleeves
-    .filter((s) => s.sleeve === "equity-growth" || s.sleeve === "equity-defensive")
-    .reduce((acc, s) => acc + s.currentUsd, 0);
-  const totalEquityTarget = sleeves
-    .filter((s) => s.sleeve === "equity-growth" || s.sleeve === "equity-defensive")
-    .reduce((acc, s) => acc + s.targetUsd, 0);
+  // Pipeline-provided bundle-aware sleeve exposure is the source of truth
+  // for FOMC (sleeves like core-ai-semi / leveraged / hedge that the ETF
+  // ROLE_TO_SLEEVE map doesn't know about). For ETF/stocks, fall back to
+  // the legacy ETF aggregator so existing dashboards keep their language.
+  const useBundleSleeves = data.bundleKind === "fomc" && data.sleeveExposure?.length > 0;
+  const sleeves: SleeveRow[] = useBundleSleeves
+    ? data.sleeveExposure.map((s) => ({
+        sleeve: s.sleeve,
+        label: s.label,
+        tickers: s.tickers,
+        currentUsd: s.currentUsd,
+        targetUsd: s.targetUsd,
+        driftUsd: s.targetUsd - s.currentUsd,
+        currentPct: s.currentPct,
+        targetPct: s.targetPct,
+        capPct: s.capPct,
+        capDollars: s.capDollars,
+        overCap: s.overCap,
+      }))
+    : aggregate(data.drift, data.portfolioValue);
+
+  const totalEquityCurrent = useBundleSleeves
+    ? sleeves.reduce((acc, s) => acc + s.currentUsd, 0)
+    : sleeves
+        .filter((s) => s.sleeve === "equity-growth" || s.sleeve === "equity-defensive")
+        .reduce((acc, s) => acc + s.currentUsd, 0);
+  const totalEquityTarget = useBundleSleeves
+    ? sleeves.reduce((acc, s) => acc + s.targetUsd, 0)
+    : sleeves
+        .filter((s) => s.sleeve === "equity-growth" || s.sleeve === "equity-defensive")
+        .reduce((acc, s) => acc + s.targetUsd, 0);
 
   const cashRemaining = Math.max(0, data.cashUsd - data.cashBuffer);
   const cashRemainingPct = data.capital > 0 ? cashRemaining / data.capital : 0;
@@ -219,11 +246,19 @@ function SleeveRowView({ row }: { row: SleeveRow }) {
   const fill = row.targetUsd > 0 ? Math.max(0, Math.min(1, row.currentUsd / row.targetUsd)) : 0;
   const driftSign = row.driftUsd > 0 ? "+" : row.driftUsd < 0 ? "−" : "";
   const driftAbs = Math.abs(row.driftUsd);
+  const capPct = row.capPct;
+  const capDollars = row.capDollars;
+  const capUsage = capDollars && capDollars > 0 ? row.currentUsd / capDollars : 0;
   return (
-    <div className="rounded-lg border border-line bg-surface-2 p-3">
+    <div className={`rounded-lg border p-3 ${row.overCap ? "border-red-500/40 bg-red-500/5" : "border-line bg-surface-2"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
         <div>
           <span className="font-semibold text-ink text-sm">{row.label}</span>
+          {capPct != null && (
+            <span className={`ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded ${row.overCap ? "bg-red-500/15 text-red-700 dark:text-red-300" : "bg-surface-3 text-ink-muted"}`}>
+              cap {(capPct * 100).toFixed(0)}%
+            </span>
+          )}
           <span className="subtle ml-2">{tickers}</span>
         </div>
         <div className="font-mono">
@@ -237,11 +272,19 @@ function SleeveRowView({ row }: { row: SleeveRow }) {
           </span>
         </div>
       </div>
-      <ProgressBar value={row.currentUsd} max={Math.max(row.targetUsd, row.currentUsd, 1)} tone="brand" />
+      <ProgressBar value={row.currentUsd} max={Math.max(row.targetUsd, row.currentUsd, capDollars ?? 0, 1)} tone="brand" />
       <div className="flex items-center justify-between text-[10px] subtle mt-1 font-mono">
         <span>{(row.currentPct * 100).toFixed(1)}% of portfolio</span>
-        <span>{(fill * 100).toFixed(0)}% of target filled</span>
+        <span>
+          {(fill * 100).toFixed(0)}% of target filled
+          {capDollars != null && ` · ${(capUsage * 100).toFixed(0)}% of cap used`}
+        </span>
       </div>
+      {row.overCap && (
+        <div className="mt-2 text-[11px] text-red-700 dark:text-red-300 font-semibold">
+          ⚠ Sleeve over its hard cap — pipeline will block new buys in this sleeve.
+        </div>
+      )}
     </div>
   );
 }
