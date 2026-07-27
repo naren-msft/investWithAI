@@ -23,6 +23,7 @@ const COLUMNS = [
   "float_shares_outstanding_current",// 7 — float (may be null)
   "market_cap_basic",                // 8 — market cap
   "premarket_change",                // 9 — pre-market % change
+  "postmarket_change",               // 10 — post-market (after-hours) % change
 ] as const;
 
 interface ScannerRow {
@@ -152,7 +153,7 @@ export async function fetchTradingViewCandidates(
       floatShares: num(d[7]),
       marketCap: num(d[8]),
       premarketChangePct: num(d[9]),
-      postmarketChangePct: null,
+      postmarketChangePct: num(d[10]),
       marketState: null,
       source: "tradingview",
     });

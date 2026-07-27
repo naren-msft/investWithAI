@@ -167,8 +167,11 @@ export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
     );
   }
 
-  // 2b. Extended-hours + exchange enrichment (pre/post-market rising + chart
-  //     exchange prefix). Best-effort; bounded batch.
+  // 2b. Extended-hours + exchange enrichment. TradingView already supplies
+  //     pre/post-market change directly (columns 9/10); Yahoo's keyless quote
+  //     is a cross-check/fallback that also gives marketState. We keep whichever
+  //     source has data (TradingView first, Yahoo fills gaps), so a name fading
+  //     after-hours is caught even if one source is missing that field.
   const extMap = await fetchExtendedHours(deduped.map((c) => c.ticker).slice(0, 60));
   deduped = deduped.map((c) => {
     const ext = extMap.get(c.ticker);
@@ -178,7 +181,7 @@ export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
       exchange: c.exchange ?? ext.exchange,
       marketState: ext.marketState,
       premarketChangePct: c.premarketChangePct ?? ext.premarketChangePct,
-      postmarketChangePct: ext.postmarketChangePct,
+      postmarketChangePct: c.postmarketChangePct ?? ext.postmarketChangePct,
     };
   });
 

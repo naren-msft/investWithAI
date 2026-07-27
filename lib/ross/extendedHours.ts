@@ -1,5 +1,6 @@
 import YahooFinance from "yahoo-finance2";
 import type { RossCandidate } from "./types";
+import { currentMarketSession } from "@/lib/marketTime";
 
 // Extended-hours enrichment. Ross's "gap and go" setup wants names that are
 // already moving UP in after-hours (post-close) and continuing to bid up in the
@@ -83,45 +84,51 @@ export async function fetchExtendedHours(tickers: string[]): Promise<Map<string,
 }
 
 /**
- * Given a candidate's extended-hours data + current market state, decide whether
- * it is rising in the active extended session and by how much.
- *   - PRE  → pre-market change
- *   - POST / POSTPOST → after-hours change
- *   - REGULAR / CLOSED → use whichever extended value is present (post preferred).
+ * Given a candidate's extended-hours data, decide whether it is rising in the
+ * currently-active extended session and by how much. The active session is
+ * derived from the US ET market clock (authoritative, DST-aware) rather than a
+ * single vendor's `marketState`, so the gate works even when one source omits
+ * it. Pre/post-market values themselves are merged upstream from BOTH
+ * TradingView and Yahoo (see lib/ross/index.ts step 2b).
+ *   - pre-market / regular → pre-market change
+ *   - after-hours          → post-market change
+ *   - closed / weekend     → most recent extended reading (post preferred)
  */
 export function extendedRisingOf(c: RossCandidate): {
   rising: boolean;
   pct: number | null;
   session: "premarket" | "afterhours" | null;
 } {
-  const state = (c.marketState ?? "").toUpperCase();
   const pre = c.premarketChangePct;
   const post = c.postmarketChangePct;
+  const marketState = (c.marketState ?? "").toUpperCase();
+  const session = currentMarketSession();
 
   let pct: number | null = null;
-  let session: "premarket" | "afterhours" | null = null;
+  let label: "premarket" | "afterhours" | null = null;
 
-  if (state === "PRE") {
+  if (session === "pre-market" || session === "regular") {
+    // During regular trading, today's pre-market reading is the relevant
+    // extended context ("was bid up pre-market"); post-market would be stale.
     pct = pre;
-    session = pre != null ? "premarket" : null;
-  } else if (state === "POST" || state === "POSTPOST") {
+    label = pre != null ? "premarket" : null;
+  } else if (session === "after-hours") {
     pct = post;
-    session = post != null ? "afterhours" : null;
-  } else if (state === "REGULAR") {
-    // During regular trading, today's pre-market reading is the relevant extended
-    // context ("was bid up pre-market"); post-market would be yesterday's = stale.
-    pct = pre;
-    session = pre != null ? "premarket" : null;
+    label = post != null ? "afterhours" : null;
   } else {
-    // CLOSED / unknown — surface the most recent after-hours reading if present.
-    if (post != null) {
+    // closed / weekend — surface the most recent reading. Prefer the vendor
+    // marketState hint when present, else post (last night's AH) then pre.
+    if (marketState === "PRE" && pre != null) {
+      pct = pre;
+      label = "premarket";
+    } else if (post != null) {
       pct = post;
-      session = "afterhours";
+      label = "afterhours";
     } else if (pre != null) {
       pct = pre;
-      session = "premarket";
+      label = "premarket";
     }
   }
 
-  return { rising: pct != null && pct > 0, pct, session };
+  return { rising: pct != null && pct > 0, pct, session: label };
 }
