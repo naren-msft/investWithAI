@@ -60,7 +60,16 @@ All thresholds are user-adjustable at runtime via the in-page control and URL qu
 Momentum names qualify and fade in seconds, so the universe is kept live: the table **auto re-scans every 60s** and shows a *"universe scanned Xs ago"* stamp. The server keeps only a short **45-second** result cache (keyed by the exact threshold set) purely to shield the unofficial TradingView scanner from duplicate/concurrent loads. The **Refresh** button forces a genuinely live scan by **bypassing that cache** (`?fresh=1` on `/api/ross` · `/api/largecap`), so you can always pull the current movers on demand. Live prices poll independently on a 30s / 1m / 5m selector.
 
 ### Screener history ("first seen")
-Every scan is recorded to `data/screener-history.json` (gitignored) via `lib/ross/history.ts`, per trading day and per book. For each ticker it tracks **`firstSeenAt` / `lastSeenAt` / `seenCount` / `peakChangePct` / `peakExtendedPct` / `everGreen`**, so you can answer "when did DFNS first qualify today?". The table shows a **"First seen" (HH:MM ET)** column; history starts accumulating from the moment a scan runs (older appearances before a restart aren't back-filled) and retains the last 10 trading days.
+Every scan is recorded to `data/screener-history.json` (gitignored) via `lib/ross/history.ts`, per trading day and per book. For each ticker it tracks **`firstSeenAt` / `lastSeenAt` / `seenCount` / `peakChangePct` / `peakExtendedPct` / `everGreen`**, so you can answer "when did DFNS first qualify today?". The table shows a **"First seen" (HH:MM ET)** column, expanding a row adds a history summary line (first-seen, scans held, peak day/AH-PM move), and `GET /api/ross/history` exposes it programmatically:
+
+```
+/api/ross/history                → today's Ross list (all tickers)
+/api/ross/history?ticker=DFNS    → one ticker's first/last-seen record
+/api/ross/history?book=largecap  → large-cap book
+/api/ross/history?day=2026-07-27 → a specific ET trading day
+```
+
+History starts accumulating from the moment a scan runs (older appearances before a restart aren't back-filled) and retains the last 10 trading days.
 
 ### Extended hours (gap-and-go)
 Ross's "gap and go" wants names already bidding **up** after the close and continuing into the pre-market. Pre/post-market change % is pulled from **two sources and merged** (TradingView scanner columns `premarket_change` / `postmarket_change`, cross-checked with Yahoo's keyless `quote`), so a name fading after-hours is caught even when one source omits the field. The active session (pre-market / regular / after-hours / closed) is decided by the **US ET market clock** (`lib/marketTime.ts`, DST-aware) rather than a single vendor's `marketState`.

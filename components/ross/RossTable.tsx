@@ -439,10 +439,51 @@ function Row({
       {isOpen && (
         <tr className="border-t border-line bg-surface-2/30">
           <td colSpan={11} className="px-3 py-3">
+            <HistoryLine row={row} />
             <PillarBreakdown row={row} />
           </td>
         </tr>
       )}
     </>
+  );
+}
+
+/** Per-ticker screener-history summary shown at the top of the expanded row. */
+function HistoryLine({ row }: { row: RossRow }) {
+  if (!row.firstSeenAt) return null;
+  const peakChg = row.peakChangePct;
+  const peakExt = row.peakExtendedPct;
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-line bg-surface-2/40 px-3 py-2 text-[11px]">
+      <span className="text-ink/80">
+        <span className="subtle">First seen today:</span>{" "}
+        <span className="font-mono font-semibold">{fmtEtTime(row.firstSeenAt)} ET</span>
+        <span className="subtle"> ({fmtAgo(row.firstSeenAt)})</span>
+      </span>
+      {row.seenCount != null && (
+        <span className="text-ink/80">
+          <span className="subtle">Scans held:</span>{" "}
+          <span className="font-mono font-semibold">{row.seenCount}</span>
+        </span>
+      )}
+      {peakChg != null && (
+        <span className="text-ink/80">
+          <span className="subtle">Peak day change:</span>{" "}
+          <span className="font-mono font-semibold text-emerald-500">
+            {peakChg > 0 ? "+" : ""}
+            {peakChg.toFixed(1)}%
+          </span>
+        </span>
+      )}
+      {peakExt != null && (
+        <span className="text-ink/80">
+          <span className="subtle">Peak AH/PM:</span>{" "}
+          <span className={`font-mono font-semibold ${peakExt > 0 ? "text-emerald-500" : "text-red-500"}`}>
+            {peakExt > 0 ? "+" : ""}
+            {peakExt.toFixed(1)}%
+          </span>
+        </span>
+      )}
+    </div>
   );
 }

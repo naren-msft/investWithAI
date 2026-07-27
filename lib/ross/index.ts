@@ -255,7 +255,13 @@ export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
   try {
     const book: ScreenerBook = profile.id === "largecap" ? "largecap" : "ross";
     const dayMap = await recordScreenerRows(book, rows, asOf);
-    for (const r of rows) r.firstSeenAt = dayMap[r.ticker]?.firstSeenAt ?? asOf;
+    for (const r of rows) {
+      const h = dayMap[r.ticker];
+      r.firstSeenAt = h?.firstSeenAt ?? asOf;
+      r.seenCount = h?.seenCount ?? 1;
+      r.peakChangePct = h?.peakChangePct ?? r.candidate.changePct ?? null;
+      r.peakExtendedPct = h?.peakExtendedPct ?? r.extendedChangePct ?? null;
+    }
   } catch {
     for (const r of rows) r.firstSeenAt = asOf;
   }

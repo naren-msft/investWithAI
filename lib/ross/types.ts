@@ -84,6 +84,12 @@ export interface RossRow {
   /** ISO of when this ticker first qualified on the current trading day (from
    *  persisted screener history). Null until history is available. */
   firstSeenAt?: string | null;
+  /** How many scans this ticker has appeared in today. */
+  seenCount?: number | null;
+  /** Best regular-session daily % change observed today. */
+  peakChangePct?: number | null;
+  /** Best extended-hours (AH/PM) % change observed today. */
+  peakExtendedPct?: number | null;
 }
 
 export interface RossResult {
