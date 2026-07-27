@@ -59,6 +59,10 @@ export interface RunRossOptions {
   overrides?: RossThresholdOverrides;
   /** Screener profile (Ross small-cap default, or Large-cap). */
   profile?: ScreenerProfile;
+  /** Skip the in-memory result cache and force a fresh upstream scan. Used by
+   *  the manual "Refresh" button (?fresh=1) so the user can always pull a live
+   *  universe on demand, regardless of cache age. */
+  bypassCache?: boolean;
 }
 
 function cacheKey(t: RossThresholds, profile: ScreenerProfile): string {
@@ -118,8 +122,10 @@ export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
   const profile = opts.profile ?? ROSS_PROFILE;
   const thresholds = opts.thresholds ?? resolveThresholds(opts.overrides ?? {}, profile.defaults);
   const key = cacheKey(thresholds, profile);
-  const cachedValue = cacheGet(key);
-  if (cachedValue) return cachedValue;
+  if (!opts.bypassCache) {
+    const cachedValue = cacheGet(key);
+    if (cachedValue) return cachedValue;
+  }
 
   const warnings: string[] = [];
 

@@ -74,8 +74,9 @@ function pillarDot(p: PillarResult) {
   );
 }
 
-/** How often to re-pull news/rows from the server (heavier than the quote poll). */
-const NEWS_REFRESH_MS = 3 * 60 * 1000;
+/** How often to re-scan the universe/news from the server (heavier than the
+ *  quote poll). Short so newly-qualifying momentum names surface quickly. */
+const NEWS_REFRESH_MS = 60 * 1000;
 
 /** Rebuild the screener query string from resolved thresholds so a news refresh
  *  re-runs the screener with exactly the same criteria the user is viewing.
@@ -150,13 +151,16 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
 
   // News (and full-row) refresh — re-runs the screener server-side and swaps in
   // fresh rows/news. Uses the same thresholds the user is currently viewing.
+  // `force` bypasses the server scan cache (?fresh=1) — used by the manual
+  // Refresh button so the user can always pull a live universe on demand.
   const newsInFlight = useRef(false);
   const refreshNews = useMemo(
-    () => async () => {
+    () => async (force = false) => {
       if (newsInFlight.current) return;
       newsInFlight.current = true;
       try {
-        const r = await fetch(`${apiPath}?${rossQuery(data.thresholds)}`, { cache: "no-store" });
+        const url = `${apiPath}?${rossQuery(data.thresholds)}${force ? "&fresh=1" : ""}`;
+        const r = await fetch(url, { cache: "no-store" });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = (await r.json()) as RossResult;
         if (Array.isArray(j?.rows)) {
@@ -245,11 +249,11 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
             type="button"
             onClick={() => {
               refresh();
-              refreshNews();
+              refreshNews(true);
             }}
             disabled={fetching}
             className="text-xs px-2 py-1 rounded-md border border-line bg-surface-2 hover:bg-surface-3 disabled:opacity-50 inline-flex items-center gap-1"
-            title="Refresh prices and news now"
+            title="Force a live scan now — bypasses the server cache"
           >
             <RefreshCw className={`w-3 h-3 ${fetching ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">{lastFetchAt ? `Updated ${fmtAgo(lastFetchAt)}` : "Refresh"}</span>
@@ -298,10 +302,11 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
       <p className="text-[11px] subtle mt-2">
         <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/20 border border-emerald-500/50 align-middle mr-1" />
         Green rows meet all automated pillars — verify the news catalyst before trading. Click a row for the pillar + news breakdown.
+        <span className="ml-1">Universe scanned {fmtAgo(data.asOf) || "just now"}.</span>
         {intervalSec > 0 && (
           <span className="ml-1">
-            News auto-refreshes every {Math.round(NEWS_REFRESH_MS / 60000)}m
-            {newsFetchAt ? ` — last checked ${fmtAgo(newsFetchAt)}` : ""}.
+            Auto re-scans every {Math.round(NEWS_REFRESH_MS / 1000)}s
+            {newsFetchAt ? ` — last re-scan ${fmtAgo(newsFetchAt)}` : ""}. Hit Refresh to force a live scan now.
           </span>
         )}
       </p>

@@ -14,3 +14,9 @@ export function overridesFromRequest(req: NextRequest): RossThresholdOverrides {
     minMarketCap: q.get("minMarketCap"),
   };
 }
+
+/** True when the request asks to bypass the scan cache (?fresh=1) for a live scan. */
+export function freshFromRequest(req: NextRequest): boolean {
+  const v = req.nextUrl.searchParams.get("fresh");
+  return v === "1" || v === "true";
+}

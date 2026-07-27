@@ -75,9 +75,12 @@ export const ROSS_US_EXCHANGES: ReadonlySet<string> = new Set([
 /** How many candidates to request from each upstream source. */
 export const ROSS_CANDIDATE_LIMIT = 60;
 
-/** Result cache TTL (ms). Movers + news change fast intraday; kept below the
- *  client's news auto-refresh cadence (3 min) so a refresh returns fresh data. */
-export const ROSS_CACHE_MS = 2 * 60 * 1000;
+/** Result cache TTL (ms). Momentum movers change by the second intraday, so the
+ *  window is deliberately short — the auto re-scan (client) runs every 60s and a
+ *  manual "Refresh" bypasses this cache entirely (?fresh=1) for a live scan.
+ *  Kept > 0 only to protect the (unofficial) TradingView scanner from being
+ *  hammered by concurrent/duplicate loads. */
+export const ROSS_CACHE_MS = 45 * 1000;
 
 /** How many headlines to show per pick. */
 export const ROSS_NEWS_PER_TICKER = 3;

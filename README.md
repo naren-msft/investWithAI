@@ -54,7 +54,10 @@ Candidates are pulled from the **TradingView** public scanner (filtered server-s
 | 5 | Float             | < 10M shares   | N/A is flagged for manual check, **not** failed (matches script)  |
 
 ### Adjustable thresholds
-All thresholds are user-adjustable at runtime via the in-page control and URL query params — e.g. `?maxPrice=100&minRvol=5&minChange=10&maxFloat=10000000`. `config/ross.ts` holds the Ross defaults + `resolveThresholds()` (clamps overrides to safe ranges); the price band, RVol, change % and float are applied server-side in the scanner. Results are cached 5 min per threshold set.
+All thresholds are user-adjustable at runtime via the in-page control and URL query params — e.g. `?maxPrice=100&minRvol=5&minChange=10&maxFloat=10000000`. `config/ross.ts` holds the Ross defaults + `resolveThresholds()` (clamps overrides to safe ranges); the price band, RVol, change % and float are applied server-side in the scanner.
+
+### Freshness & refresh
+Momentum names qualify and fade in seconds, so the universe is kept live: the table **auto re-scans every 60s** and shows a *"universe scanned Xs ago"* stamp. The server keeps only a short **45-second** result cache (keyed by the exact threshold set) purely to shield the unofficial TradingView scanner from duplicate/concurrent loads. The **Refresh** button forces a genuinely live scan by **bypassing that cache** (`?fresh=1` on `/api/ross` · `/api/largecap`), so you can always pull the current movers on demand. Live prices poll independently on a 30s / 1m / 5m selector.
 
 ### Extended hours (gap-and-go)
 Ross's "gap and go" wants names already bidding **up** after the close and continuing into the pre-market. `lib/ross/extendedHours.ts` reads Yahoo's keyless `quote` endpoint for `marketState` (PRE / REGULAR / POST / …) plus pre- and post-market change %, flags candidates that are *rising* in extended hours, and normalizes the exchange prefix. Best-effort — never throws.
