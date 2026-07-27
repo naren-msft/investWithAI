@@ -81,6 +81,9 @@ export interface RossRow {
   news: RossNewsItem[];
   /** Deep link to Google Finance for manual research. */
   googleFinanceUrl: string;
+  /** ISO of when this ticker first qualified on the current trading day (from
+   *  persisted screener history). Null until history is available. */
+  firstSeenAt?: string | null;
 }
 
 export interface RossResult {

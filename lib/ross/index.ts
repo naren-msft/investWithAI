@@ -15,6 +15,7 @@ import { fetchYahooCandidates, enrichFloat } from "./yahooFallback";
 import { fetchExtendedHours, extendedRisingOf } from "./extendedHours";
 import { evaluatePillars } from "./pillars";
 import { fetchRossNews, activeNewsSourceLabel } from "./news";
+import { recordScreenerRows, type ScreenerBook } from "./history";
 
 // Orchestrates the Ross Cameron 5 Pillars screen:
 //   1. Pull candidates (TradingView primary → Yahoo fallback).
@@ -246,8 +247,21 @@ export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
     return rb - ra;
   });
 
+  const asOf = new Date().toISOString();
+
+  // Persist this scan into today's screener history and annotate each row with
+  // the ticker's first-seen time so the UI can show "first seen HH:MM ET".
+  // Best-effort — a failure here must never break the screener.
+  try {
+    const book: ScreenerBook = profile.id === "largecap" ? "largecap" : "ross";
+    const dayMap = await recordScreenerRows(book, rows, asOf);
+    for (const r of rows) r.firstSeenAt = dayMap[r.ticker]?.firstSeenAt ?? asOf;
+  } catch {
+    for (const r of rows) r.firstSeenAt = asOf;
+  }
+
   const result: RossResult = {
-    asOf: new Date().toISOString(),
+    asOf,
     newsSince: newsSince.toISOString(),
     newsSource: activeNewsSourceLabel(),
     thresholds,

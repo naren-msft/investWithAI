@@ -44,6 +44,18 @@ function fmtAgo(iso: string | null): string {
   if (m < 60) return `${m}m ago`;
   return `${Math.floor(m / 60)}h ago`;
 }
+/** Absolute HH:MM in US-Eastern — deterministic across SSR/client (fixed tz). */
+function fmtEtTime(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString("en-US", {
+    timeZone: "America/New_York",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
 
 function ExtHrsCell({ pct, session }: { pct: number | null; session: "premarket" | "afterhours" | null }) {
   if (pct == null || !isFinite(pct)) return <span className="subtle">—</span>;
@@ -281,6 +293,7 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
               <th className="text-right px-2 py-2 hidden lg:table-cell">Ext. hrs</th>
               <th className="text-right px-2 py-2">RVol</th>
               <th className="text-right px-2 py-2 hidden sm:table-cell">Float</th>
+              <th className="text-center px-2 py-2 hidden md:table-cell">First seen</th>
               <th className="text-center px-2 py-2">Pillars</th>
               <th className="text-center px-2 py-2">News</th>
             </tr>
@@ -288,7 +301,7 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-2 py-8 text-center subtle">
+                <td colSpan={11} className="px-2 py-8 text-center subtle">
                   No movers meet these criteria right now. Try widening the max price or lowering RVol / change %.
                 </td>
               </tr>
@@ -403,6 +416,15 @@ function Row({
         <td className="px-2 py-2 text-right font-mono tabular-nums hidden sm:table-cell">
           {fmtShares(row.candidate.floatShares)}
         </td>
+        <td className="px-2 py-2 text-center hidden md:table-cell whitespace-nowrap">
+          {row.firstSeenAt ? (
+            <span className="subtle" title={`First qualified today at ${fmtEtTime(row.firstSeenAt)} ET`}>
+              {fmtEtTime(row.firstSeenAt)}
+            </span>
+          ) : (
+            <span className="subtle">—</span>
+          )}
+        </td>
         <td className="px-2 py-2">
           <div className="flex items-center justify-center gap-1">{row.pillars.map(pillarDot)}</div>
         </td>
@@ -416,7 +438,7 @@ function Row({
       </tr>
       {isOpen && (
         <tr className="border-t border-line bg-surface-2/30">
-          <td colSpan={10} className="px-3 py-3">
+          <td colSpan={11} className="px-3 py-3">
             <PillarBreakdown row={row} />
           </td>
         </tr>
