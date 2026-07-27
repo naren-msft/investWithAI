@@ -102,6 +102,13 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
   const [lastFetchAt, setLastFetchAt] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
   const [, setTick] = useState(0);
+  // Relative timestamps ("scanned Xs ago") depend on Date.now(), which differs
+  // between the SSR pass and client hydration — render them only after mount to
+  // avoid a React hydration text mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Live copy of the screener result — seeded from the server prop, then
   // refreshed (news + rows) on the news interval so headlines stay current
@@ -256,7 +263,7 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
             title="Force a live scan now — bypasses the server cache"
           >
             <RefreshCw className={`w-3 h-3 ${fetching ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">{lastFetchAt ? `Updated ${fmtAgo(lastFetchAt)}` : "Refresh"}</span>
+            <span className="hidden sm:inline">{mounted && lastFetchAt ? `Updated ${fmtAgo(lastFetchAt)}` : "Refresh"}</span>
           </button>
         </div>
       </div>
@@ -302,8 +309,8 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
       <p className="text-[11px] subtle mt-2">
         <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/20 border border-emerald-500/50 align-middle mr-1" />
         Green rows meet all automated pillars — verify the news catalyst before trading. Click a row for the pillar + news breakdown.
-        <span className="ml-1">Universe scanned {fmtAgo(data.asOf) || "just now"}.</span>
-        {intervalSec > 0 && (
+        {mounted && <span className="ml-1">Universe scanned {fmtAgo(data.asOf) || "just now"}.</span>}
+        {mounted && intervalSec > 0 && (
           <span className="ml-1">
             Auto re-scans every {Math.round(NEWS_REFRESH_MS / 1000)}s
             {newsFetchAt ? ` — last re-scan ${fmtAgo(newsFetchAt)}` : ""}. Hit Refresh to force a live scan now.
