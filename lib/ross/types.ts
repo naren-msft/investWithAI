@@ -95,6 +95,8 @@ export interface RossResult {
   customThresholds: boolean;
   /** Which upstream source produced the candidate universe. */
   universeSource: RossSource | "none";
+  /** True when the extended-hours "rising" gate was applied (AH/PM up only). */
+  requireExtendedRising: boolean;
   rows: RossRow[];
   /** Count of rows where allAutomatedMet (green). */
   greenCount: number;

@@ -20,3 +20,10 @@ export function freshFromRequest(req: NextRequest): boolean {
   const v = req.nextUrl.searchParams.get("fresh");
   return v === "1" || v === "true";
 }
+
+/** Whether to require extended-hours (AH/PM) rising. Default ON — pass
+ *  ?extRising=0 to include names that are flat/falling after-hours. */
+export function requireExtendedRisingFromRequest(req: NextRequest): boolean {
+  const v = req.nextUrl.searchParams.get("extRising");
+  return v !== "0" && v !== "false";
+}

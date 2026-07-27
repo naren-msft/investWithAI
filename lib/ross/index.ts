@@ -63,11 +63,16 @@ export interface RunRossOptions {
    *  the manual "Refresh" button (?fresh=1) so the user can always pull a live
    *  universe on demand, regardless of cache age. */
   bypassCache?: boolean;
+  /** Require the candidate to be RISING in the active extended-hours session
+   *  (after-hours / pre-market). Drops names fading post-close even if their
+   *  regular-session pillars pass. Unknown extended data is tolerated. */
+  requireExtendedRising?: boolean;
 }
 
-function cacheKey(t: RossThresholds, profile: ScreenerProfile): string {
+function cacheKey(t: RossThresholds, profile: ScreenerProfile, extRising: boolean): string {
   return [
     profile.id,
+    extRising ? "extR" : "all",
     t.minRvol,
     t.minChangePct,
     t.strongMomentumPct,
@@ -121,7 +126,7 @@ function meetsAutomatedPillars(c: RossCandidate, t: RossThresholds, profile: Scr
 export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
   const profile = opts.profile ?? ROSS_PROFILE;
   const thresholds = opts.thresholds ?? resolveThresholds(opts.overrides ?? {}, profile.defaults);
-  const key = cacheKey(thresholds, profile);
+  const key = cacheKey(thresholds, profile, !!opts.requireExtendedRising);
   if (!opts.bypassCache) {
     const cachedValue = cacheGet(key);
     if (cachedValue) return cachedValue;
@@ -176,6 +181,18 @@ export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
       postmarketChangePct: ext.postmarketChangePct,
     };
   });
+
+  // 2c. Extended-hours direction gate — Ross "gap and go" wants CONTINUATION:
+  //     names that are UP in the active after-hours / pre-market session, not
+  //     fading. When enabled, drop candidates whose KNOWN active extended-session
+  //     change is <= 0 (falling/flat). Unknown extended data is tolerated (kept)
+  //     — we never penalize genuinely-missing data (same policy as float N/A).
+  if (opts.requireExtendedRising) {
+    deduped = deduped.filter((c) => {
+      const ext = extendedRisingOf(c);
+      return ext.pct == null || ext.pct > 0;
+    });
+  }
 
   // 3. Evaluate pillars.
   const evaluated = deduped.map((candidate) => {
@@ -233,6 +250,7 @@ export async function runRoss(opts: RunRossOptions = {}): Promise<RossResult> {
     thresholds,
     customThresholds: isCustomThresholds(thresholds, profile.defaults),
     universeSource,
+    requireExtendedRising: !!opts.requireExtendedRising,
     rows,
     greenCount: rows.filter((r) => r.allAutomatedMet).length,
     strongCount: rows.filter((r) => r.strongMomentum).length,

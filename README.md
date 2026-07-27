@@ -62,6 +62,8 @@ Momentum names qualify and fade in seconds, so the universe is kept live: the ta
 ### Extended hours (gap-and-go)
 Ross's "gap and go" wants names already bidding **up** after the close and continuing into the pre-market. `lib/ross/extendedHours.ts` reads Yahoo's keyless `quote` endpoint for `marketState` (PRE / REGULAR / POST / …) plus pre- and post-market change %, flags candidates that are *rising* in extended hours, and normalizes the exchange prefix. Best-effort — never throws.
 
+By default the screener applies an **extended-hours "rising" gate**: any candidate whose *known* active AH/PM change is ≤ 0 is **dropped**, so a name that fades after the close (even with a strong regular-session move) never shows. Unknown extended data is tolerated (kept, like float N/A). Toggle it with the *"📈 Only extended-hours risers"* checkbox or `?extRising=0` to include fallers. (The plain 5 Pillars are all regular-session metrics — TradingView `change` = % vs previous close — so this gate is what enforces the *continuation* Ross actually trades.)
+
 ### News & sentiment
 Latest headlines per pick published **since the previous market close** (after-hours + pre-market catalyst window). Source is **Yahoo Finance** search by default, or **Finnhub** company-news (`lib/ross/finnhub.ts`) for near-real-time, minute-level breaking headlines when `FINNHUB_API_KEY` is set — otherwise the Finnhub path is a transparent no-op. Headlines pass through a keyword **sentiment** scorer (`lib/ross/sentiment.ts`) that up-weights bullish momentum language and drops negative/neutral ones, so only green catalysts are surfaced. Google Finance deep-links per row for manual research.
 

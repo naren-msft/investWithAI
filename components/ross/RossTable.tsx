@@ -81,7 +81,7 @@ const NEWS_REFRESH_MS = 60 * 1000;
 /** Rebuild the screener query string from resolved thresholds so a news refresh
  *  re-runs the screener with exactly the same criteria the user is viewing.
  *  `minMarketCap` is included so the large-cap profile refreshes correctly. */
-function rossQuery(t: RossThresholds): string {
+function rossQuery(t: RossThresholds, requireExtendedRising: boolean): string {
   const p = new URLSearchParams({
     minRvol: String(t.minRvol),
     minChange: String(t.minChangePct),
@@ -90,6 +90,7 @@ function rossQuery(t: RossThresholds): string {
     maxPrice: String(t.maxPrice),
     maxFloat: String(t.maxFloat),
     minMarketCap: String(t.minMarketCap),
+    extRising: requireExtendedRising ? "1" : "0",
   });
   return p.toString();
 }
@@ -166,7 +167,7 @@ export function RossTable({ result, apiPath = "/api/ross" }: { result: RossResul
       if (newsInFlight.current) return;
       newsInFlight.current = true;
       try {
-        const url = `${apiPath}?${rossQuery(data.thresholds)}${force ? "&fresh=1" : ""}`;
+        const url = `${apiPath}?${rossQuery(data.thresholds, data.requireExtendedRising)}${force ? "&fresh=1" : ""}`;
         const r = await fetch(url, { cache: "no-store" });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = (await r.json()) as RossResult;

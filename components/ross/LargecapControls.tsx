@@ -42,6 +42,7 @@ export function LargecapControls() {
       minChange: currentValue(p, "minChange", LARGECAP_DEFAULTS.minChangePct),
       minRvol: currentValue(p, "minRvol", LARGECAP_DEFAULTS.minRvol),
       minMarketCapB: String(mcap / 1_000_000_000),
+      extRising: p.get("extRising") !== "0",
     };
   }, [searchParams]);
 
@@ -62,6 +63,8 @@ export function LargecapControls() {
     p.set("minRvol", next.minRvol);
     const marketCap = Math.max(0, Number(next.minMarketCapB) || 0) * 1_000_000_000;
     p.set("minMarketCap", String(Math.round(marketCap)));
+    if (next.extRising) p.delete("extRising");
+    else p.set("extRising", "0");
     router.push(`/screener?${p.toString()}`);
   }
 
@@ -142,7 +145,21 @@ export function LargecapControls() {
         </label>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className="inline-flex items-center gap-1.5 text-[11px] text-ink cursor-pointer select-none mr-1">
+          <input
+            type="checkbox"
+            checked={form.extRising}
+            onChange={(e) => {
+              const next = { ...form, extRising: e.target.checked };
+              setForm(next);
+              apply(next);
+            }}
+            className="accent-emerald-600"
+          />
+          <span className="font-medium">📈 Only extended-hours risers</span>
+          <span className="opacity-60">— up in AH/PM now</span>
+        </label>
         <button
           type="button"
           onClick={() => apply(form)}
@@ -151,7 +168,7 @@ export function LargecapControls() {
           Apply thresholds
         </button>
         <span className="text-[11px] subtle">
-          Applied server-side to the scanner — price band, RVol, change % and market cap.
+          Applied server-side to the scanner — price band, RVol, change %, market cap and extended-hours direction.
         </span>
       </div>
     </div>

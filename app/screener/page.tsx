@@ -25,6 +25,7 @@ interface ScreenerSearchParams {
   strongMomentum?: string;
   maxFloat?: string;
   minMarketCap?: string;
+  extRising?: string;
 }
 
 function fmtUsd(v: number): string {
@@ -62,10 +63,13 @@ export default async function ScreenerPage({
 
   const profile = isLarge ? LARGECAP_PROFILE : ROSS_PROFILE;
   const apiPath = isLarge ? "/api/largecap" : "/api/ross";
+  // Extended-hours "rising" gate — default ON. Only names UP in the active
+  // after-hours / pre-market session survive (pass ?extRising=0 to disable).
+  const requireExtendedRising = searchParams?.extRising !== "0";
 
   let data;
   try {
-    data = await runScreener({ thresholds, profile });
+    data = await runScreener({ thresholds, profile, requireExtendedRising });
   } catch (e: unknown) {
     return (
       <main className="max-w-6xl mx-auto p-6">
@@ -124,6 +128,9 @@ export default async function ScreenerPage({
             <Badge variant="info">{data.risingCount} 📈 rising AH/PM</Badge>
             <Badge variant="success">{data.withNewsCount} 📰 with catalyst</Badge>
             {data.customThresholds && <Badge variant="info">custom thresholds</Badge>}
+            <Badge variant={data.requireExtendedRising ? "success" : "warn"}>
+              {data.requireExtendedRising ? "📈 AH/PM risers only" : "⚠ incl. AH/PM fallers"}
+            </Badge>
             <Badge variant={data.newsSource.startsWith("Finnhub") ? "success" : "info"}>
               📡 {data.newsSource}
             </Badge>
