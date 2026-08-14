@@ -38,6 +38,7 @@ export function DalaNav() {
               <Link className="dala-nav-link" href="/etf">ETF</Link>
               <Link className="dala-nav-link" href="/stocks">STOCKS</Link>
               <Link className="dala-nav-link" href="/screener">ROSS SCREENER</Link>
+              <Link className="dala-nav-link" href="/ross-dashboard">ROSS DASHBOARD</Link>
             </div>
             <Link href="/fomc" className="dala-pill-ghost dala-header-cta">Launch Dashboard</Link>
           </nav>
@@ -66,6 +67,7 @@ export function DalaNav() {
         <Link href="/etf">ETF</Link>
         <Link href="/stocks">STOCKS</Link>
         <Link href="/screener">ROSS SCREENER</Link>
+        <Link href="/ross-dashboard">ROSS DASHBOARD</Link>
         <Link href="/fomc" className="dala-pill" style={{ marginTop: 12 }}>Launch Dashboard</Link>
       </div>
     </>

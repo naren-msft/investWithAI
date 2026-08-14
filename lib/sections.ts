@@ -633,7 +633,7 @@ export const SECTIONS: HelpSection[] = [
     ],
     faqs: [
       { q: "Why is the list empty right now?", a: "Outside of a strong session there may be no names meeting all five pillars. Widen the max price or lower the RVol / change % thresholds using the controls." },
-      { q: "Where do candidates come from?", a: "TradingView's public scanner (filtered by the pillars server-side). If it's unavailable, the screen falls back to Yahoo Finance predefined gainer/small-cap screeners." },
+      { q: "Where do candidates come from?", a: "TradingView's public scanner over US-listed common stocks and US-listed depositary receipts (filtered by the pillars server-side). OTC/PINK names remain excluded. If it's unavailable, the screen falls back to Yahoo Finance predefined gainer/small-cap screeners." },
       { q: "Why is float shown as N/A?", a: "Float data isn't always available for small-caps. Per Ross's script, N/A does NOT fail Pillar 5 — it's flagged for manual verification on Finviz." },
       { q: "Is this a buy list?", a: "No. Day trading is extremely high risk and most day traders lose money. A green row is a scan signal, not a recommendation. Confirm the catalyst and your risk plan first." },
     ],

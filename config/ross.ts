@@ -58,8 +58,9 @@ export const ROSS_SCANNER_REGION = "america";
 /**
  * Primary US exchanges to include. Everything else (notably OTC / pink-sheet,
  * which is where most foreign shells and unlisted names live) is excluded so the
- * screener only surfaces US exchange-listed stocks. A null/unknown exchange
- * (e.g. the Yahoo fallback path, which is already US-scoped) is tolerated.
+ * screener only surfaces US exchange-listed common stocks and US-listed
+ * depositary receipts. A null/unknown exchange (e.g. the Yahoo fallback path,
+ * which is already US-scoped) is tolerated.
  */
 export const ROSS_US_EXCHANGES: ReadonlySet<string> = new Set([
   "NASDAQ",
@@ -75,27 +76,53 @@ export const ROSS_US_EXCHANGES: ReadonlySet<string> = new Set([
 /** How many candidates to request from each upstream source. */
 export const ROSS_CANDIDATE_LIMIT = 60;
 
+/** Per-lane candidate quotas for the multi-lane TradingView universe (see
+ *  lib/ross/tradingview.ts). Kept modest so the union stays bounded (≈ a single
+ *  Yahoo extended-hours batch) and the unofficial scanner is not hammered. */
+export const ROSS_LANE_LIMITS = {
+  /** Already-qualifying big movers (sorted by % change). */
+  qualified: 50,
+  /** First-hour regular-session discovery lane (sorted by % change, no coarse
+   *  full-day RVol pre-filter). */
+  openingDrive: 50,
+  /** Early "warming" movers (sorted by relative volume — volume leads price). */
+  watch: 50,
+  /** Extended-session gappers (sorted by pre/after-market change). */
+  gap: 50,
+} as const;
+
+/** Watch-tier floors, derived as HALF the profile's pillar thresholds so the
+ *  screen surfaces momentum as it BUILDS — before a name fully crosses the 5
+ *  Pillars. On Ross defaults (10% / 5×) this yields the canonical early-watch
+ *  floors of +5% and 2.5× RVol; it self-scales for the large-cap profile. */
+export interface WatchThresholds {
+  /** Minimum daily % change to surface as an early mover. */
+  watchChangePct: number;
+  /** Minimum relative volume to surface as an early mover. */
+  watchRvol: number;
+  /** Minimum active extended-session (pre/after-market) gap % to surface a name
+   *  even when its regular-session change is still below watchChangePct. */
+  gapPct: number;
+}
+
+/** Derive the watch-tier floors from a resolved set of pillar thresholds. */
+export function watchThresholdsOf(t: RossThresholds): WatchThresholds {
+  return {
+    watchChangePct: t.minChangePct * 0.5,
+    watchRvol: t.minRvol * 0.5,
+    gapPct: Math.max(3, t.minChangePct * 0.5),
+  };
+}
+
 /** Result cache TTL (ms). Momentum movers change by the second intraday, so the
  *  window is deliberately short — the auto re-scan (client) runs every 60s and a
  *  manual "Refresh" bypasses this cache entirely (?fresh=1) for a live scan.
  *  Kept > 0 only to protect the (unofficial) TradingView scanner from being
  *  hammered by concurrent/duplicate loads. */
-export const ROSS_CACHE_MS = 45 * 1000;
+export const ROSS_CACHE_MS = 30 * 1000;
 
 /** How many headlines to show per pick. */
 export const ROSS_NEWS_PER_TICKER = 3;
-
-/**
- * Catalyst news window (ms). A rolling lookback from "now" — a momentum
- * day-trade cares about the catalyst driving *today's* move (typically this
- * morning's pre-market or overnight headline), so we surface the latest news
- * within this window and never anything staler. 24h comfortably spans an
- * overnight gap and the current session while excluding multi-day-old coverage.
- */
-export const ROSS_NEWS_LOOKBACK_MS = 24 * 60 * 60 * 1000; // 24h rolling window
-
-/** Only surface headlines that score as positive/bullish (Ross wants up-moves). */
-export const ROSS_NEWS_POSITIVE_ONLY = true;
 
 function clampNum(v: unknown, range: { min: number; max: number }, fallback: number): number {
   const n = typeof v === "number" ? v : Number(v);

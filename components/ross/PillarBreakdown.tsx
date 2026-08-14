@@ -2,13 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { ExternalLink, Newspaper, LineChart, TrendingUp } from "lucide-react";
+import { summarizePillars } from "@/lib/ross/dashboardHelpers";
 import type { RossRow, PillarResult, RossNewsItem } from "@/lib/ross/types";
 
 // Expanded per-row detail:
 //   • a live TradingView mini chart (loaded lazily when the row is expanded),
 //   • the 5 pillars with pass/fail/na status, and
-//   • the positive catalyst-news list (summary + timestamp + source + window),
-//     all rendered green per product decision.
+//   • the catalyst-news list (summary + timestamp + source + window).
 
 function pillarClasses(status: PillarResult["status"]): string {
   switch (status) {
@@ -128,7 +128,10 @@ export function PillarBreakdown({ row }: { row: RossRow }) {
       </div>
 
       <div>
-        <div className="text-[11px] uppercase tracking-wide subtle mb-1.5">5 Pillars</div>
+        <div className="text-[11px] uppercase tracking-wide subtle mb-1">5 Pillars</div>
+        <p className="mb-1.5 text-xs font-medium text-ink/80">
+          {summarizePillars(row.pillars)}
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
           {row.pillars.map((p, i) => (
             <div key={p.key} className={`rounded-md border p-2 ${pillarClasses(p.status)}`}>
@@ -150,11 +153,11 @@ export function PillarBreakdown({ row }: { row: RossRow }) {
 
       <div>
         <div className="text-[11px] uppercase tracking-wide subtle mb-1.5 flex items-center gap-1">
-          <Newspaper className="w-3 h-3" /> Latest positive catalyst (after-hours → pre-market)
+          <Newspaper className="w-3 h-3" /> Latest catalyst news
         </div>
         {row.news.length === 0 ? (
           <p className="text-xs subtle">
-            No fresh positive headline in the catalyst window (last 24 hours).{" "}
+            No auto-detected catalyst since the previous market close.{" "}
             {row.strongMomentum
               ? "Strong move — verify the catalyst manually before trading."
               : "Confirm any catalyst manually."}
@@ -176,11 +179,16 @@ export function PillarBreakdown({ row }: { row: RossRow }) {
                       </span>
                     )}
                     <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                      {n.window ? WINDOW_LABEL[n.window] : "catalyst"}
+                      {n.window ? WINDOW_LABEL[n.window] : "time unverified"}
                     </span>
                     {typeof n.sentimentScore === "number" && n.sentimentScore > 0 && (
                       <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
                         ▲ bullish
+                      </span>
+                    )}
+                    {n.sentimentScore === 0 && (
+                      <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-500/15 text-slate-700 dark:text-slate-300">
+                        neutral wording
                       </span>
                     )}
                     <span className="text-[11px] subtle truncate">{n.publisher ?? "—"}</span>

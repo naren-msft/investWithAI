@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal, RotateCcw } from "lucide-react";
 import { LARGECAP_DEFAULTS } from "@/config/largecap";
+import { extendedDirectionControlCopy } from "@/lib/ross/presentation";
+import type { RossResult } from "@/lib/ross/types";
 
 // Adjustable 5-Pillar thresholds for the LARGE-CAP screener. Writes URL query
 // params (?minMarketCap=…) so the screen re-runs server-side and the choice is
@@ -25,9 +27,16 @@ function currentValue(params: URLSearchParams, key: FieldKey, def: number): stri
   return v != null && v !== "" ? v : String(def);
 }
 
-export function LargecapControls() {
+export function LargecapControls({
+  marketSession,
+  asOf,
+}: {
+  marketSession: RossResult["marketSession"];
+  asOf: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const extCopy = extendedDirectionControlCopy(marketSession, asOf);
 
   const initial = useMemo(() => {
     const p = new URLSearchParams(searchParams?.toString() ?? "");
@@ -157,8 +166,8 @@ export function LargecapControls() {
             }}
             className="accent-emerald-600"
           />
-          <span className="font-medium">📈 Only extended-hours risers</span>
-          <span className="opacity-60">— up in AH/PM now</span>
+          <span className="font-medium">{extCopy.label}</span>
+          <span className="opacity-60">{extCopy.hint}</span>
         </label>
         <button
           type="button"
@@ -168,7 +177,7 @@ export function LargecapControls() {
           Apply thresholds
         </button>
         <span className="text-[11px] subtle">
-          Applied server-side to the scanner — price band, RVol, change %, market cap and extended-hours direction.
+          {extCopy.detail}
         </span>
       </div>
     </div>

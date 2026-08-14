@@ -10,6 +10,7 @@ export const revalidate = 0;
 //   /api/ross/history?ticker=DFNS         → one ticker's first/last-seen record
 //   /api/ross/history?book=largecap       → large-cap book
 //   /api/ross/history?day=2026-07-27      → a specific ET trading day
+// Records include qualified Signal Alignment snapshots and settled +30m outcomes.
 export async function GET(req: NextRequest) {
   try {
     const q = req.nextUrl.searchParams;

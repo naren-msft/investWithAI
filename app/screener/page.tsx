@@ -12,6 +12,10 @@ import { RossTable } from "@/components/ross/RossTable";
 import { RossControls } from "@/components/ross/RossControls";
 import { LargecapControls } from "@/components/ross/LargecapControls";
 import { BookTabs } from "@/components/ross/BookTabs";
+import {
+  extendedDirectionControlCopy,
+  risingExtendedLabel,
+} from "@/lib/ross/presentation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -63,8 +67,9 @@ export default async function ScreenerPage({
 
   const profile = isLarge ? LARGECAP_PROFILE : ROSS_PROFILE;
   const apiPath = isLarge ? "/api/largecap" : "/api/ross";
-  // Extended-hours "rising" gate — default ON. Only names UP in the active
-  // after-hours / pre-market session survive (pass ?extRising=0 to disable).
+  // Extended-session direction bias — default ON. Active pre/after-market
+  // sessions hard-filter to risers; regular hours retain today's pre-market gap
+  // as context/ranking only (pass ?extRising=0 to disable).
   const requireExtendedRising = searchParams?.extRising !== "0";
 
   let data;
@@ -92,6 +97,11 @@ export default async function ScreenerPage({
   const pillar5Summary = isLarge
     ? `mkt cap ≥ ${fmtUsd(thresholds.minMarketCap)}`
     : `float < ${fmtFloatM(thresholds.maxFloat)}`;
+  const risingLabel = risingExtendedLabel(data.marketSession, data.asOf);
+  const extDirectionCopy = extendedDirectionControlCopy(
+    data.marketSession,
+    data.asOf,
+  );
 
   return (
     <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-4">
@@ -124,12 +134,15 @@ export default async function ScreenerPage({
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="success">{data.greenCount} pass all automated checks</Badge>
+            <Badge variant="warn">{data.watchCount} 🌱 watch (early)</Badge>
             <Badge variant="warn">{data.strongCount} 🔥 strong</Badge>
-            <Badge variant="info">{data.risingCount} 📈 rising AH/PM</Badge>
+            <Badge variant="info">{data.risingCount} 📈 {risingLabel}</Badge>
             <Badge variant="success">{data.withNewsCount} 📰 with catalyst</Badge>
             {data.customThresholds && <Badge variant="info">custom thresholds</Badge>}
             <Badge variant={data.requireExtendedRising ? "success" : "warn"}>
-              {data.requireExtendedRising ? "📈 AH/PM risers only" : "⚠ incl. AH/PM fallers"}
+              {data.requireExtendedRising
+                ? extDirectionCopy.statusEnabled
+                : extDirectionCopy.statusDisabled}
             </Badge>
             <Badge variant={data.newsSource.startsWith("Finnhub") ? "success" : "info"}>
               📡 {data.newsSource}
@@ -143,7 +156,13 @@ export default async function ScreenerPage({
           </div>
         )}
 
-        <div className="mt-3">{isLarge ? <LargecapControls /> : <RossControls />}</div>
+        <div className="mt-3">
+          {isLarge ? (
+            <LargecapControls marketSession={data.marketSession} asOf={data.asOf} />
+          ) : (
+            <RossControls marketSession={data.marketSession} asOf={data.asOf} />
+          )}
+        </div>
       </Card>
 
       <CollapsibleCard
@@ -175,8 +194,8 @@ export default async function ScreenerPage({
 
       <footer className="mt-6 p-4 text-xs subtle border-t border-line">
         <strong className="text-ink/80">Educational use only — not investment advice.</strong>{" "}
-        Live movers from TradingView (Yahoo Finance fallback); positive catalyst news from {data.newsSource}
-        {" "}(bullish-filtered, rolling 24h); extended-hours (pre/after-market) from Yahoo; click a ticker for its
+        Live movers from TradingView (Yahoo Finance fallback); non-negative catalyst news from {data.newsSource}
+        {" "}(since the previous market close; unknown timestamps are labeled); extended-hours (pre/after-market) from Yahoo; click a ticker for its
         live TradingView chart.{" "}
         {isLarge
           ? `Large-cap defaults: ${`$${LARGECAP_DEFAULTS.minPrice}–$${LARGECAP_DEFAULTS.maxPrice} price, ${LARGECAP_DEFAULTS.minRvol}× RVol, +${LARGECAP_DEFAULTS.minChangePct}%, mkt cap ≥ ${fmtUsd(LARGECAP_DEFAULTS.minMarketCap)}`}.`
@@ -191,16 +210,20 @@ function RossMethodology() {
     <div className="space-y-3 text-sm text-ink/90">
       <Pillar n={1} title="Relative Volume ≥ 5×">
         Today&apos;s volume vs its 30-day average. High RVol confirms real interest and liquidity.
-        (Computed from TradingView&apos;s 30-day average volume — threshold adjustable.)
+        During pre-market, the screener prefers TradingView&apos;s live 5-minute RVOL when available; regular
+        hours keep the session-aware daily basis. The first regular hour also keeps a bounded
+        change-sorted discovery lane so pace-adjusted RVol movers are not blocked by lagging
+        full-day RVol. (Threshold adjustable.)
       </Pillar>
       <Pillar n={2} title="Daily % change ≥ 10%">
         The stock must already be in motion — demand is present, not hypothetical.
       </Pillar>
-      <Pillar n={3} title="News catalyst (positive only)">
+      <Pillar n={3} title="News catalyst">
         Breaking news should justify the move (earnings, FDA, contract, partnership). Each row&apos;s
-        breakdown lists only <strong>bullish</strong> headlines from the after-hours → overnight →
-        pre-market window, with summary, ET timestamp and source. A 🔥 marks names moving ≥ 15% and
-        📈 marks names still rising in the pre/after-hours session; <strong>always verify the catalyst yourself</strong>.
+        breakdown lists bullish or neutrally worded headlines since the previous market close while
+        excluding clearly negative stories. Timestamp-less results are labeled for manual verification.
+        A 🔥 marks names moving ≥ 15% and
+        📈 marks positive extended-session context — live in AH/PM when active, or today&apos;s retained pre-market gap during regular hours; <strong>always verify the catalyst yourself</strong>.
       </Pillar>
       <Pillar n={4} title="Price $1–$20 (adjustable)">
         Ross&apos;s small-cap momentum sweet spot. Use the control above to widen to $50, $100, or a custom max.
@@ -219,17 +242,21 @@ function LargecapMethodology() {
     <div className="space-y-3 text-sm text-ink/90">
       <Pillar n={1} title="Relative Volume ≥ 1.5×">
         Today&apos;s volume vs its 30-day average. Large caps rarely spike 5× like small caps, so the bar
-        is lower — but elevated RVol still confirms unusual interest. (Computed from TradingView&apos;s
-        30-day average volume — threshold adjustable.)
+        is lower — but elevated RVol still confirms unusual interest. During pre-market, the screener
+        prefers TradingView&apos;s live 5-minute RVOL when available; regular hours keep the
+        session-aware daily basis. The first regular hour also keeps a bounded change-sorted
+        discovery lane so pace-adjusted RVol movers are not blocked by lagging full-day RVol.
+        (Threshold adjustable.)
       </Pillar>
       <Pillar n={2} title="Daily % change ≥ 3%">
         A meaningful move for a mega-cap. The stock must already be in motion — demand is present, not hypothetical.
       </Pillar>
-      <Pillar n={3} title="News catalyst (positive only)">
+      <Pillar n={3} title="News catalyst">
         Breaking news should justify the move (earnings, guidance, upgrade, contract, M&amp;A). Each row&apos;s
-        breakdown lists only <strong>bullish</strong> headlines from the after-hours → overnight →
-        pre-market window, with summary, ET timestamp and source. A 🔥 marks names moving ≥ 5% and
-        📈 marks names still rising in the pre/after-hours session; <strong>always verify the catalyst yourself</strong>.
+        breakdown lists bullish or neutrally worded headlines since the previous market close while
+        excluding clearly negative stories. Timestamp-less results are labeled for manual verification.
+        A 🔥 marks names moving ≥ 5% and
+        📈 marks positive extended-session context — live in AH/PM when active, or today&apos;s retained pre-market gap during regular hours; <strong>always verify the catalyst yourself</strong>.
       </Pillar>
       <Pillar n={4} title="Price $10–$100,000 (adjustable)">
         Effectively no upper cap — large caps trade across a wide price range. Use the control above to narrow the band.
@@ -265,6 +292,6 @@ function Pillar({ n, title, children }: { n: number; title: string; children: Re
 
 function rows1Line(rows: import("@/lib/ross/types").RossRow[]): string {
   return rows
-    .map((r) => `${r.ticker} ${r.candidate.changePct != null ? (r.candidate.changePct > 0 ? "+" : "") + r.candidate.changePct.toFixed(0) + "%" : ""}`)
+    .map((r) => `${r.ticker} ${r.currentChangePct != null ? (r.currentChangePct > 0 ? "+" : "") + r.currentChangePct.toFixed(0) + "%" : ""}`)
     .join(" · ");
 }

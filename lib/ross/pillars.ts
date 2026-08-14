@@ -47,9 +47,12 @@ export function evaluatePillars(
   c: RossCandidate,
   t: RossThresholds,
   profile: ScreenerProfile = ROSS_PROFILE,
+  evaluatedPrice: number | null = c.price,
+  evaluatedChangePct: number | null = c.changePct,
+  evaluatedRvol: number | null = c.relativeVolume,
 ): PillarEvaluation {
   // Pillar 1 — Relative Volume ≥ minRvol
-  const rvol = c.relativeVolume;
+  const rvol = evaluatedRvol;
   const p1: PillarResult = {
     key: "rvol",
     label: "Relative Volume",
@@ -60,7 +63,7 @@ export function evaluatePillars(
   };
 
   // Pillar 2 — Daily % change ≥ minChangePct
-  const chg = c.changePct;
+  const chg = evaluatedChangePct;
   const p2: PillarResult = {
     key: "change",
     label: "Daily % Change",
@@ -87,7 +90,7 @@ export function evaluatePillars(
   };
 
   // Pillar 4 — Price within [minPrice, maxPrice]
-  const price = c.price;
+  const price = evaluatedPrice;
   const priceOk = price != null && price >= t.minPrice && price <= t.maxPrice;
   const p4: PillarResult = {
     key: "price",
@@ -95,7 +98,7 @@ export function evaluatePillars(
     automated: true,
     status: price == null ? "fail" : priceOk ? "pass" : "fail",
     value: fmtPrice(price),
-    detail: `$${t.minPrice}–$${t.maxPrice} sweet spot`,
+    detail: `$${t.minPrice}–$${t.maxPrice} sweet spot${price !== c.price ? " (extended-session price)" : ""}`,
   };
 
   // Pillar 5 — SIZE. Two modes depending on profile:

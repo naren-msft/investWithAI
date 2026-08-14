@@ -43,9 +43,15 @@ interface Props {
   ticker?: string;
   interval?: "1m" | "2m" | "5m" | "15m" | "30m" | "60m";
   range?: "1d" | "5d" | "6d";
+  compact?: boolean;
 }
 
-export function IntradayChart({ ticker = "SPY", interval = "1m", range = "1d" }: Props) {
+export function IntradayChart({
+  ticker = "SPY",
+  interval = "1m",
+  range = "1d",
+  compact = false,
+}: Props) {
   const [data, setData] = useState<IntradayPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,7 +156,7 @@ export function IntradayChart({ ticker = "SPY", interval = "1m", range = "1d" }:
         title={
           <span className="inline-flex items-center gap-2">
             <Activity className="w-4 h-4 text-emerald-500" />
-            S&amp;P 500 · live intraday (1-min candles)
+            {ticker} · live intraday ({interval} candles)
           </span>
         }
         subtitle={
@@ -176,11 +182,11 @@ export function IntradayChart({ ticker = "SPY", interval = "1m", range = "1d" }:
       {err && <div className="text-[11px] text-red-700 dark:text-red-300 mb-2">{err}</div>}
 
       {!hasData ? (
-        <div className="h-[260px] grid place-items-center subtle text-sm">
-          {loading ? "Fetching live SPY candles…" : "No intraday data — market may be closed (weekend / pre-open)."}
+        <div className={`${compact ? "h-[180px]" : "h-[260px]"} grid place-items-center subtle text-sm`}>
+          {loading ? `Fetching live ${ticker} candles…` : "No intraday data — market may be closed (weekend / pre-open)."}
         </div>
       ) : (
-        <div className="h-[300px]">
+        <div className={compact ? "h-[220px]" : "h-[300px]"}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={rows} margin={{ top: 8, right: 10, left: 0, bottom: 0 }} barCategoryGap={1}>
               <CartesianGrid stroke="rgb(var(--line) / 0.4)" />
@@ -247,7 +253,7 @@ export function IntradayChart({ ticker = "SPY", interval = "1m", range = "1d" }:
 
       {/* ---------- MACD sub-panel ---------- */}
       {hasData && (
-        <div className="h-[110px] mt-3">
+        <div className={`${compact ? "h-[80px]" : "h-[110px]"} mt-3`}>
           <div className="text-[10px] subtle mb-0.5 px-1">MACD (12, 26, 9)</div>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={rows} margin={{ top: 2, right: 10, left: 0, bottom: 0 }} barCategoryGap={1}>
@@ -280,7 +286,7 @@ export function IntradayChart({ ticker = "SPY", interval = "1m", range = "1d" }:
 
       {/* ---------- RSI sub-panel ---------- */}
       {hasData && (
-        <div className="h-[100px] mt-3">
+        <div className={`${compact ? "h-[72px]" : "h-[100px]"} mt-3`}>
           <div className="text-[10px] subtle mb-0.5 px-1">RSI (14)</div>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={rows} margin={{ top: 2, right: 10, left: 0, bottom: 0 }}>

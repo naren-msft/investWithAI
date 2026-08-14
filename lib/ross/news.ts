@@ -1,8 +1,5 @@
 import YahooFinance from "yahoo-finance2";
-import {
-  ROSS_NEWS_PER_TICKER,
-  ROSS_NEWS_POSITIVE_ONLY,
-} from "@/config/ross";
+import { ROSS_NEWS_PER_TICKER } from "@/config/ross";
 import type { RossNewsItem } from "./types";
 import { scoreSentiment, isGenericHeadline } from "./sentiment";
 import { fetchFinnhubNews, finnhubEnabled } from "./finnhub";
@@ -14,10 +11,11 @@ import { fetchFinnhubNews, finnhubEnabled } from "./finnhub";
 //   2. Yahoo Finance `search` news — broader coverage, good for tickers with a
 //      thin RSS feed.
 //
-// Ross buys strength on a positive catalyst, so headlines are scored for
-// bullish/bearish tone (lib/ross/sentiment) and — in positive-only mode —
-// only up-move news survives. Items are kept only if published within the
-// after-hours + overnight + pre-market catalyst window. Never throws.
+// Ross buys strength on a catalyst, so headlines are scored for bullish/bearish
+// tone. Clearly negative headlines are excluded, while neutral wording is kept:
+// many legitimate company releases do not contain a bullish keyword. Timestamped
+// items must be in the active catalyst window; timestamp-less search results are
+// retained but ranked below verified-fresh items. Never throws.
 
 const yahooFinance = new YahooFinance();
 (yahooFinance as { suppressNotices?: (n: string[]) => void }).suppressNotices?.(["yahooSurvey", "ripHistorical"]);
@@ -141,19 +139,13 @@ async function fetchSearch(ticker: string): Promise<RossNewsItem[]> {
   }
 }
 
-async function fetchTickerNews(ticker: string, sinceMs: number): Promise<RossNewsItem[]> {
-  const [finnhub, rss, search] = await Promise.all([
-    fetchFinnhubNews(ticker, sinceMs), // real-time source (no-op without a key)
-    fetchRss(ticker),
-    fetchSearch(ticker),
-  ]);
-
-  // Merge + dedupe by normalized title. Finnhub is listed first so its precise
-  // minute-level timestamp + summary win; later sources only FILL missing fields
-  // (a field-wise merge — a plain spread would let a later `undefined` erase an
-  // existing summary/timestamp).
+export function filterAndRankNews(
+  items: RossNewsItem[],
+  sinceMs: number,
+  nowMs: number = Date.now(),
+): RossNewsItem[] {
   const byKey = new Map<string, RossNewsItem>();
-  for (const item of [...finnhub, ...rss, ...search]) {
+  for (const item of items) {
     const key = item.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 80);
     const existing = byKey.get(key);
     if (!existing) {
@@ -168,29 +160,36 @@ async function fetchTickerNews(ticker: string, sinceMs: number): Promise<RossNew
       link: existing.link ?? item.link,
     });
   }
-
   const scored = Array.from(byKey.values())
-    // Time window: keep items at/after the cutoff and not in the future (a small
-    // clock-skew allowance guards against a slightly-ahead source clock). Items
-    // with no timestamp are dropped (avoids surfacing stale evergreen links).
-    .filter((n) => n.publishedAt != null && n.publishedAt >= sinceMs && n.publishedAt <= Date.now() + 5 * 60 * 1000)
+    .filter((n) =>
+      n.publishedAt == null ||
+      (n.publishedAt >= sinceMs && n.publishedAt <= nowMs + 5 * 60 * 1000))
     // Drop generic market-roundup / list headlines (not a real catalyst).
     .filter((n) => !isGenericHeadline(n.title))
     .map((n) => {
       const s = scoreSentiment(n.title, n.summary);
       return { ...n, sentimentScore: s.score, window: classifyWindow(n.publishedAt), _neg: s.negative };
     })
-    // Positive-only mode: keep only strictly-bullish headlines (drop neutral +
-    // negative). This is the "strong positive news moving it up" the screen wants.
-    .filter((n) => (ROSS_NEWS_POSITIVE_ONLY ? (n.sentimentScore ?? 0) > 0 : !n._neg));
+    .filter((n) => !n._neg);
 
-  // Sort: most-recent first (freshest catalyst wins), then most-positive.
+  // Verified-fresh items win over unknown timestamps, then recency and tone.
   scored.sort((a, b) => {
+    if ((a.publishedAt == null) !== (b.publishedAt == null)) return a.publishedAt == null ? 1 : -1;
     if ((b.publishedAt ?? 0) !== (a.publishedAt ?? 0)) return (b.publishedAt ?? 0) - (a.publishedAt ?? 0);
     return (b.sentimentScore ?? 0) - (a.sentimentScore ?? 0);
   });
 
   return scored.slice(0, ROSS_NEWS_PER_TICKER).map(({ _neg, ...rest }) => rest);
+}
+
+async function fetchTickerNews(ticker: string, sinceMs: number): Promise<RossNewsItem[]> {
+  const [finnhub, rss, search] = await Promise.all([
+    fetchFinnhubNews(ticker, sinceMs),
+    fetchRss(ticker),
+    fetchSearch(ticker),
+  ]);
+
+  return filterAndRankNews([...finnhub, ...rss, ...search], sinceMs);
 }
 
 async function withConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
@@ -208,8 +207,8 @@ async function withConcurrency<T, R>(items: T[], limit: number, fn: (item: T) =>
 }
 
 /**
- * Fetch positive catalyst news for a batch of tickers, keeping only items
- * published at/after `since` (the rolling catalyst-window start), newest-first.
+ * Fetch non-negative catalyst news for a batch of tickers. Timestamped items
+ * must be published at/after `since`; unknown timestamps are ranked last.
  * Returns ticker → items.
  */
 export async function fetchRossNews(

@@ -1,6 +1,9 @@
 import YahooFinance from "yahoo-finance2";
 import type { RossCandidate } from "./types";
-import { currentMarketSession } from "@/lib/marketTime";
+import {
+  currentMarketSession,
+  isSameDayPostCloseResearchWindowEt,
+} from "@/lib/marketTime";
 
 // Extended-hours enrichment. Ross's "gap and go" setup wants names that are
 // already moving UP in after-hours (post-close) and continuing to bid up in the
@@ -65,7 +68,11 @@ export async function fetchExtendedHours(tickers: string[]): Promise<Map<string,
   if (uniq.length === 0) return map;
 
   try {
-    const res = (await yahooFinance.quote(uniq, { validateResult: false } as never)) as YahooQuote[] | YahooQuote;
+    // NOTE: `validateResult` is a MODULE option (3rd arg), NOT a query option
+    // (2nd arg). Passing it as the 2nd arg makes yahoo-finance2 reject the call
+    // ("should NOT have additional properties"), which silently disabled ALL
+    // extended-hours enrichment — the earliest (pre-market gap) signal.
+    const res = (await yahooFinance.quote(uniq, {}, { validateResult: false })) as YahooQuote[] | YahooQuote;
     const quotes = Array.isArray(res) ? res : [res];
     for (const q of quotes) {
       const t = (q.symbol ?? "").toUpperCase();
@@ -92,17 +99,20 @@ export async function fetchExtendedHours(tickers: string[]): Promise<Map<string,
  * TradingView and Yahoo (see lib/ross/index.ts step 2b).
  *   - pre-market / regular → pre-market change
  *   - after-hours          → post-market change
- *   - closed / weekend     → most recent extended reading (post preferred)
+ *   - same-day 20:00–24:00 → post-market research continuation
+ *   - other closed states  → no live extended reading
  */
-export function extendedRisingOf(c: RossCandidate): {
+export function extendedRisingOf(
+  c: RossCandidate,
+  at: Date = new Date(),
+): {
   rising: boolean;
   pct: number | null;
   session: "premarket" | "afterhours" | null;
 } {
   const pre = c.premarketChangePct;
   const post = c.postmarketChangePct;
-  const marketState = (c.marketState ?? "").toUpperCase();
-  const session = currentMarketSession();
+  const session = currentMarketSession(at);
 
   let pct: number | null = null;
   let label: "premarket" | "afterhours" | null = null;
@@ -115,19 +125,9 @@ export function extendedRisingOf(c: RossCandidate): {
   } else if (session === "after-hours") {
     pct = post;
     label = post != null ? "afterhours" : null;
-  } else {
-    // closed / weekend — surface the most recent reading. Prefer the vendor
-    // marketState hint when present, else post (last night's AH) then pre.
-    if (marketState === "PRE" && pre != null) {
-      pct = pre;
-      label = "premarket";
-    } else if (post != null) {
-      pct = post;
-      label = "afterhours";
-    } else if (pre != null) {
-      pct = pre;
-      label = "premarket";
-    }
+  } else if (session === "closed" && isSameDayPostCloseResearchWindowEt(at)) {
+    pct = post;
+    label = post != null ? "afterhours" : null;
   }
 
   return { rising: pct != null && pct > 0, pct, session: label };
